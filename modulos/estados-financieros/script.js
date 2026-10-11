@@ -173,6 +173,7 @@
       const a = kind === 'balance' ? model.balance.find(x => x.id === id) : model.income.find(x => x.id === id);
       const issues = kind === 'balance' ? balance.issues.filter(x => x.id === id) : [];
       const messages = issues.map(x => esc(x.text));
+      if (a && !String(a.name || '').trim()) messages.push('Escribe el nombre de la cuenta.');
       if (SIDES.some(side => invalidInputs.has((kind === 'balance' ? 'amount-' : 'income-') + id + '-' + side))) messages.unshift('Escribe un número válido. El último importe válido se conserva hasta que corrijas la celda.');
       if (a && SIDES.some(side => Number.isFinite(a.amounts?.[side]) && ((a.amounts[side] < 0 && !(kind === 'balance' ? a.section === 'equity' : a.category === 'taxes')) || Math.abs(a.amounts[side]) > 1e15))) messages.push('Usa un importe positivo de hasta 10¹⁵; para restar, cambia el efecto en «⋯».');
       const action = issues.find(x => x.type === 'misplaced');
@@ -281,24 +282,27 @@
     const replacement = document.getElementById(id);
     if (replacement) { replacement.value = raw; replacement.focus(); replacement.setSelectionRange(start, end); }
   }
+  // Uso y efecto propuestos por el nombre. Lo que se asignó solo se recalcula si cambia el nombre;
+  // lo que el usuario eligió en «⋯» (sin marca «Auto») se respeta.
   function identifyBalance(a) {
-    const hit = F.matchAccount(a.name);
-    let changed = false;
+    const before = (a.role ?? '') + '|' + (a.sign ?? 1);
+    if (a.roleAuto) { a.role = null; delete a.roleAuto; }
+    if (a.signAuto) { a.sign = 1; delete a.signAuto; }
+    const setRole = role => { if (!a.role && role) { a.role = role; a.roleAuto = true; } };
+    const setMinus = () => { if ((a.sign ?? 1) !== -1) { a.sign = -1; a.signAuto = true; } };
+    const name = String(a.name || '').trim();
+    const hit = name ? F.matchAccount(name) : null;
     if (hit && hit.section === a.section && (a.section === 'equity' || hit.term === a.term) && !hit.memo) {
-      if (!a.role && hit.role) { a.role = hit.role; changed = true; }
-      if ((a.sign ?? 1) !== hit.sign && hit.sign === -1) { a.sign = -1; changed = true; }
+      setRole(hit.role);
+      if (hit.sign === -1) setMinus();
     }
-    if (!hit && a.section === 'asset' && a.term === 'noncurrent' && /deprec|amortiz|agotamiento/.test(a.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())) {
-      if ((a.sign ?? 1) !== -1) { a.sign = -1; changed = true; }
-      if (!a.role) { a.role = 'fixed'; changed = true; }
-    }
+    if (name && !hit && a.section === 'asset' && a.term === 'noncurrent' && /deprec|amortiz|agotamiento/.test(name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())) { setMinus(); setRole('fixed'); }
     // Fuera del catálogo, el uso se sugiere por palabra clave («Caja chica» → efectivo); se ve como etiqueta y se cambia en «⋯».
-    if (!hit && !a.role && (a.sign ?? 1) === 1) {
-      const role = window.FinoraTableImporter?.suggestRole(a.name, a.section, a.term);
-      if (role) { a.role = role; changed = true; }
-    }
-    return changed;
+    if (name && !hit && (a.sign ?? 1) === 1) setRole(window.FinoraTableImporter?.suggestRole(name, a.section, a.term));
+    return before !== (a.role ?? '') + '|' + (a.sign ?? 1);
   }
+  // Una cuenta sin nombre ni importes no es una cuenta: al borrar su nombre, desaparece.
+  const isEmpty = a => !String(a.name || '').trim() && SIDES.every(side => a.amounts?.[side] === null || a.amounts?.[side] === undefined);
   document.addEventListener('input', event => {
     const el = event.target;
     if (el.dataset?.draft) { materializeDraft(el); return; }
@@ -346,15 +350,17 @@
     const el = event.target, d = el.dataset;
     if (d.name) {
       const a = findBalance(d.name); if (!a) return; a.name = el.value.trim();
+      if (isEmpty(a)) { model.balance = model.balance.filter(x => x.id !== a.id); save(); renderAll(); return; }
       const changed = identifyBalance(a); save(); changed ? renderAll() : update();
     } else if (d.incomeName) {
       const a = findIncome(d.incomeName); if (!a) return; a.name = el.value.trim();
+      if (isEmpty(a)) { model.income = model.income.filter(x => x.id !== a.id); save(); renderAll(); return; }
       const hit = F.matchIncomeAccount(a.name), changed = hit && hit.category === a.category && hit.sign === -1 && (a.sign ?? 1) !== -1;
       if (changed) a.sign = -1;
       save(); changed ? renderAll() : update();
-    } else if (d.sign) { findBalance(d.sign).sign = Number(el.value); save(); renderAll(); }
+    } else if (d.sign) { const a = findBalance(d.sign); a.sign = Number(el.value); delete a.signAuto; save(); renderAll(); }
     else if (d.incomeSign) { findIncome(d.incomeSign).sign = Number(el.value); save(); renderAll(); }
-    else if (d.role) { findBalance(d.role).role = el.value || null; save(); renderAll(); }
+    else if (d.role) { const a = findBalance(d.role); a.role = el.value || null; delete a.roleAuto; save(); renderAll(); }
     else if (d.transfer) {
       const a = findBalance(d.transfer), target = JSON.parse(el.value), block = BLOCKS[target.block];
       model.balance.splice(model.balance.indexOf(a), 1);
