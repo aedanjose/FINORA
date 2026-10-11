@@ -98,6 +98,17 @@
     if (/^total (de )?costos?/.test(n)) return 'costSales';
     return null;
   }
+  // Nombres que cambian de sentido según el lado del balance: el encabezado del documento decide.
+  const TWO_SIDED = /^(bancos?|impuestos? (sobre la renta )?diferidos?|acciones( preferentes| comunes)?)$/;
+  const MEANINGS = [
+    [/^prestamos?\b/, 'préstamo por cobrar (dinero que prestaste)', 'préstamo por pagar (dinero que debes)'],
+    [/^anticipos?\b/, 'anticipo entregado', 'anticipo recibido'],
+    [/^documentos?\b/, 'documento por cobrar', 'documento por pagar'],
+    [/^intereses?\b/, 'intereses por cobrar', 'intereses por pagar'],
+    [/^(impuestos?|iva|ir|isr)\b/, 'impuesto a favor (por cobrar)', 'impuesto por pagar'],
+    [/^depositos?\b/, 'depósito entregado', 'depósito recibido']
+  ];
+  const contextMeaning = (n, section) => { const m = MEANINGS.find(([re]) => re.test(n)); return m && section !== 'equity' ? m[section === 'asset' ? 1 : 2] : null; };
   // Rol sugerido por palabras clave cuando el nombre no está en el catálogo (siempre con aviso).
   const roleHints = [[/efectivo|caja|banco/, 'cash'], [/cuentas? (por|a) cobrar|clientes|deudores/, 'receivables'], [/inventario|mercader/, 'inventory'], [/cuentas? (por|a) pagar|proveedores/, 'payables'], [/prestamos?|hipoteca|bonos|deuda|obligaciones financieras/, 'longDebt'], [/terreno|edificio|maquinaria|equipo|mobiliario|vehiculo|planta/, 'fixed']];
   const categoryHints = [[/tasa.*(impuesto|impositiv|fiscal)|tasa de isr/, 'taxRate'], [/ventas? a credito/, 'creditSales'], [/numero de acciones|acciones en circulacion|acciones comunes en circulacion/, 'shares'], [/costos? fijos/, 'fixedCosts'], [/compras? (reales )?a credito/, 'creditPurchases'], [/costo/, 'costSales'], [/gasto.*(venta|admin|general|arrend|deprec|operativ)|deprec|arrend/, 'opex'], [/interes|financier/, 'interest'], [/impuesto/, 'taxes'], [/dividendo/, 'preferred'], [/venta|ingreso/, 'sales']];
@@ -182,12 +193,18 @@
       const row = { id: nextId++, line: it.line, name: bare || it.name, include: true, amounts: slots, doubts: [], memberOf: null };
       parseDoubts.forEach(d => addDoubt(row, 'warn', d));
       if (isBalance) {
-        if (hit) {
+        if (hit && context.section && context.section !== hit.section && TWO_SIDED.test(bn)) {
+          // Nombre del catálogo que existe en ambos lados («Impuesto sobre la renta diferido», «Bancos»): decide el encabezado.
+          Object.assign(row, { section: context.section, term: context.term, role: null, sign: 1, memo: false });
+          addDoubt(row, 'warn', `«${bare}» puede ser ${one(hit.section)} o ${one(context.section)}; está bajo un encabezado de ${label(context.section)}, así que se tomó como ${one(context.section)}. Confírmalo.`);
+        } else if (hit) {
           Object.assign(row, { section: hit.section, term: hit.term, role: hit.role, sign: hit.sign, memo: hit.memo });
           if (context.section && context.section !== hit.section) addDoubt(row, 'warn', `El nombre sugiere ${label(hit.section)}, pero está bajo un encabezado de ${label(context.section)}. Se usó la del nombre.`);
         } else {
           Object.assign(row, { section: context.section, term: context.term, role: null, sign: 1, memo: false });
-          if (context.section) addDoubt(row, 'warn', `Nombre fuera del catálogo: clasificación tomada del encabezado (${label(context.section)}${context.term ? ', ' + (context.term === 'current' ? 'corriente' : 'no corriente') : ''}). Confírmala.`);
+          const meaning = context.section && contextMeaning(bn, context.section);
+          if (meaning) addDoubt(row, 'warn', `«${bare}» bajo ${label(context.section)}: se tomó como ${meaning}. Confírmalo.`);
+          else if (context.section) addDoubt(row, 'warn', `Nombre fuera del catálogo: clasificación tomada del encabezado (${label(context.section)}${context.term ? ', ' + (context.term === 'current' ? 'corriente' : 'no corriente') : ''}). Confírmala.`);
           const hint = roleHints.find(([re]) => re.test(bn));
           if (hint && context.section) {
             const rule = F.accountRoles[hint[1]];
@@ -254,6 +271,7 @@
     proposal.check = verify(proposal);
     return proposal;
   }
+  const one = section => section === 'asset' ? 'activo' : section === 'liability' ? 'pasivo' : 'capital';
   function label(section) { return section === 'asset' ? 'activos' : section === 'liability' ? 'pasivos' : 'patrimonio'; }
 
   // ── Verificación con el motor ─────────────────────────────────────────────────

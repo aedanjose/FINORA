@@ -253,3 +253,50 @@ test('Sugerencia de uso por palabra clave respeta sección y plazo', () => {
   assert.equal(R.suggestRole('Caja chica', 'asset', 'noncurrent'), null);
   assert.equal(R.suggestRole('Seguro pagado', 'asset', 'current'), null);
 });
+
+test('Detecta el tipo de estado y el nombre de la empresa en los documentos de clase', () => {
+  assert.equal(P.detectKind(fixture('5-mundo-moda-balance.txt')), 'balance');
+  assert.equal(P.detectKind(fixture('4-dayton-balance.txt')), 'balance');
+  assert.equal(P.detectKind(fixture('4-dayton-resultados.txt')), 'income');
+  assert.equal(P.detectCompany(fixture('5-mundo-moda-balance.txt')), 'MUNDO MODA S.A');
+  assert.equal(P.detectCompany(fixture('4-dayton-resultados.txt')), 'Dayton Products, Inc.');
+  assert.equal(P.detectKind('Banco\t1\t2'), null);
+  assert.equal(P.detectCompany('Cuenta\t2024\t2025\nBanco\t1\t2'), null);
+});
+
+test('El encabezado decide en cuentas que existen en ambos lados del balance', () => {
+  const text = 'Cuenta\t2024\t2025\nACTIVOS CIRCULANTES\nPréstamos\t5\t5\nIVA\t1\t1\nACTIVOS NO CIRCULANTES\nImpuesto sobre la renta diferido\t3\t3\nPASIVO DE CORTO PLAZO\nBancos\t4\t4\nPréstamos\t4\t4\nProveedores\t2\t2\nPASIVO DE LARGO PLAZO\nImpuesto sobre la renta diferido\t9\t9';
+  const rows = P.analyze(text, options).rows;
+  const at = (name, n = 0) => rows.filter(r => r.name === name)[n];
+  assert.equal(at('Préstamos').section, 'asset'); assert.match(at('Préstamos').issues.join(' '), /préstamo por cobrar/);
+  assert.equal(at('Préstamos', 1).section, 'liability'); assert.match(at('Préstamos', 1).issues.join(' '), /préstamo por pagar/);
+  assert.match(at('IVA').issues.join(' '), /impuesto a favor/);
+  assert.equal(at('Impuesto sobre la renta diferido').section, 'asset');
+  assert.equal(at('Impuesto sobre la renta diferido', 1).section, 'liability');
+  assert.equal(at('Bancos').section, 'liability'); assert.equal(at('Bancos').role, null);
+  assert.equal(at('Proveedores').section, 'liability'); assert.equal(at('Proveedores').role, 'payables');
+  // Un nombre inequívoco del catálogo sigue mandando aunque el encabezado diga otra cosa.
+  const odd = P.analyze('Cuenta\t2024\t2025\nACTIVOS CIRCULANTES\nProveedores\t2\t2', options).rows[0];
+  assert.equal(odd.section, 'liability'); assert.match(odd.issues.join(' '), /Se usó la del nombre/);
+});
+
+test('Primera visita: se empieza por el documento y una empresa importada queda activa', () => {
+  const memory = {};
+  globalThis.localStorage = { getItem: k => memory[k] ?? null, setItem: (k, v) => { memory[k] = String(v); }, removeItem: k => { delete memory[k]; } };
+  delete require.cache[require.resolve('../assets/js/casos.js')];
+  const Fresh = require('../assets/js/casos.js');
+  try {
+    assert.equal(Fresh.store.started(), false);
+    assert.deepEqual(Fresh.store.list().map(c => c.id), ['mundo-moda', 'dayton']);
+    const draft = confirm(P.analyze(fixture('5-mundo-moda-balance.txt'), options));
+    const company = P.buildCase(Fresh.blankCase(P.detectCompany(fixture('5-mundo-moda-balance.txt'))), draft);
+    Fresh.store.add(company);
+    assert.equal(Fresh.store.started(), true);
+    assert.equal(Fresh.store.active().name, 'MUNDO MODA S.A');
+    assert.equal(Fresh.store.list().length, 3);
+    // Un estado guardado antes de existir la marca cuenta como iniciado.
+    memory['finora:casos:v1'] = JSON.stringify({ version: 1, activeId: 'dayton', cases: [Fresh.samples.dayton()] });
+    Fresh.store.reload();
+    assert.equal(Fresh.store.started(), true);
+  } finally { delete globalThis.localStorage; delete require.cache[require.resolve('../assets/js/casos.js')]; }
+});

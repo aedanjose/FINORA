@@ -182,7 +182,24 @@
   }
 
   // ---------- Montaje ----------
+  // Sin ningún documento ingresado no hay nada que analizar: se invita a empezar por Estados financieros.
+  const analysisParts = () => ['case-bar', 'analysis-stats'].map($).concat(Array.from(document.querySelectorAll('.analysis-tabs, [role="tabpanel"]')));
+  function renderStart() {
+    let notice = $('start-notice');
+    if (!notice) {
+      notice = document.createElement('section');
+      notice.className = 'panel'; notice.id = 'start-notice';
+      notice.innerHTML = `<div class="empty-panel"><h3>Empieza por tu documento</h3><p>Pega el balance general o el estado de resultados en Estados financieros. Finora clasifica las cuentas y aquí verás el análisis vertical y horizontal, los indicadores, la interpretación y las recomendaciones.</p><a class="button button-primary" href="../estados-financieros/index.html"><i data-icon="file"></i>Ingresar un documento</a></div>`;
+      $('case-bar').before(notice);
+    }
+    hydrateIcons(notice);
+  }
   function render() {
+    const started = C.store.started();
+    analysisParts().forEach(el => { if (el && !el.matches('[role="tabpanel"]')) el.hidden = !started; });
+    if (!started) { renderStart(); document.querySelectorAll('[role="tabpanel"]').forEach(el => { el.hidden = true; }); return; }
+    $('start-notice')?.remove();
+    if (!document.querySelector('[role="tabpanel"]:not([hidden])')) selectTab(tabs.find(t => t.getAttribute('aria-selected') === 'true') || tabs[0]);
     const c = C.store.active();
     const b = C.analyzeBalance(c), i = C.analyzeIncome(c);
     renderStats(c, b, i); renderBalance(c, b); renderIncome(c, i); renderCharts(c, b, i); renderReading(c, b, i); renderAdvice(c, b, i); renderRatios(c, b, i); renderChecks(c, b, i);

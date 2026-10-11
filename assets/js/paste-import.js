@@ -251,7 +251,26 @@
     }
     return next;
   }
-  const api = { analyze, validate, buildCase, parseAmount, BLOCKS, CATEGORIES };
+  // ¿Balance o estado de resultados? Cuenta las palabras propias de cada estado en el texto pegado.
+  function detectKind(text) {
+    const n = norm(text);
+    const score = words => words.reduce((t, w) => t + (n.match(new RegExp(`(^|[^a-z])${w}`, 'g')) || []).length, 0);
+    const balance = score(['activo', 'pasivo', 'patrimonio', 'capital social', 'balance general', 'circulante', 'corriente']);
+    const income = score(['ventas', 'ingresos', 'costo de', 'utilidad', 'gastos', 'estado de resultados', 'impuesto']);
+    if (!balance && !income) return null;
+    return income > balance ? 'income' : 'balance';
+  }
+  // Nombre de la empresa: la primera línea sin cifras que no sea el título del estado ni la unidad.
+  function detectCompany(text) {
+    const skip = /^(balance|estado|estados|cuenta|concepto|cifras|valores|expresado|al \d|del? \d|periodo|ejercicio|activos?|pasivos?|capital|ingresos|ventas)\b|\b(miles|millones)\b|^[a-z]{0,3}\$/;
+    for (const raw of String(text ?? '').split(/\r?\n/).slice(0, 6)) {
+      const line = raw.replace(/\t+/g, ' ').trim();
+      if (!line || /\d/.test(line) || line.length > 80 || skip.test(norm(line))) continue;
+      return line;
+    }
+    return null;
+  }
+  const api = { analyze, validate, buildCase, parseAmount, detectKind, detectCompany, BLOCKS, CATEGORIES };
   if (node) module.exports = api; else root.FinoraPaste = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 

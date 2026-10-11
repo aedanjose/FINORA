@@ -133,7 +133,10 @@
     if (memory) return memory;
     let state = null;
     try { state = JSON.parse(storage()?.getItem(STORAGE_KEY) || 'null'); } catch (_) { state = null; }
-    if (!state || !Array.isArray(state.cases) || !state.cases.length) state = { version: 1, activeId: 'mundo-moda', cases: SAMPLE_IDS.map(id => SAMPLES[id]()) };
+    // Primera visita: los ejemplos están disponibles, pero se empieza pegando un documento («started» falso).
+    // Un estado guardado antes de existir esta marca ya tenía datos del usuario: cuenta como iniciado.
+    if (!state || !Array.isArray(state.cases) || !state.cases.length) state = { version: 1, started: false, activeId: 'mundo-moda', cases: SAMPLE_IDS.map(id => SAMPLES[id]()) };
+    else if (state.started === undefined) state.started = true;
     if (!state.cases.some(c => c.id === state.activeId)) state.activeId = state.cases[0].id;
     memory = state;
     return state;
@@ -148,20 +151,24 @@
   const store = {
     list: () => readState().cases.map(c => ({ id: c.id, name: c.name, sample: !!c.sample })),
     active: () => clone(readState().cases.find(c => c.id === readState().activeId)),
-    setActive(id) { const s = readState(); if (!s.cases.some(c => c.id === id)) return; s.activeId = id; writeState(s); notify(); },
+    setActive(id) { const s = readState(); if (!s.cases.some(c => c.id === id)) return; s.activeId = id; s.started = true; writeState(s); notify(); },
+    started: () => readState().started !== false,
+    markStarted() { const s = readState(); if (s.started) return; s.started = true; writeState(s); notify(); },
     save(caseData) {
       const s = readState(); const index = s.cases.findIndex(c => c.id === caseData.id);
       if (index < 0) s.cases.push(clone(caseData)); else s.cases[index] = clone(caseData);
       const saved = writeState(s); notify(); return saved;
     },
-    create(name) { const c = blankCase(name); const s = readState(); s.cases.push(c); s.activeId = c.id; writeState(s); notify(); return clone(c); },
+    create(name) { const c = blankCase(name); const s = readState(); s.cases.push(c); s.activeId = c.id; s.started = true; writeState(s); notify(); return clone(c); },
+    // Empresa nueva armada fuera del almacén (por ejemplo, al importar un documento): se guarda y queda activa.
+    add(caseData) { const s = readState(); s.cases = s.cases.filter(c => c.id !== caseData.id); s.cases.push(clone(caseData)); s.activeId = caseData.id; s.started = true; const saved = writeState(s); notify(); return saved; },
     remove(id) {
       const s = readState(); if (s.cases.length <= 1) return false;
       s.cases = s.cases.filter(c => c.id !== id); if (s.activeId === id) s.activeId = s.cases[0].id; writeState(s); notify(); return true;
     },
     resetSample(id) {
       if (!SAMPLES[id]) return false; const s = readState(); const fresh = SAMPLES[id](); const index = s.cases.findIndex(c => c.id === id);
-      if (index < 0) s.cases.push(fresh); else s.cases[index] = fresh; s.activeId = id; writeState(s); notify(); return true;
+      if (index < 0) s.cases.push(fresh); else s.cases[index] = fresh; s.activeId = id; s.started = true; writeState(s); notify(); return true;
     },
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     // Otra pestaña guardó: se descarta la copia en memoria y se vuelve a leer.

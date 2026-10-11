@@ -14,16 +14,18 @@
   function open(options = {}) {
     const kind = options.kind === 'income' ? 'income' : 'balance';
     const mode = options.mode === 'append' ? 'append' : 'replace';
-    const baseline = C.store.active();
+    // Con options.baseline la empresa todavía no existe: se crea solo al aplicar (cancelar no deja empresas vacías).
+    const fresh = !!options.baseline;
+    const baseline = fresh ? options.baseline : C.store.active();
     const snapshot = JSON.stringify(baseline);
     const label = kind === 'balance' ? 'balance general' : 'estado de resultados';
     let source = options.text || '', draft = null;
-    const modal = window.Finora.openDialog('Pegar desde Excel', '<div id="import-workspace"></div>');
+    const modal = window.Finora.openDialog(fresh ? 'Nueva empresa desde un documento' : 'Pegar desde Excel', '<div id="import-workspace"></div>');
     modal.classList.add('import-dialog');
     const workspace = modal.querySelector('#import-workspace');
     const abort = new AbortController();
     modal.addEventListener('close', () => { abort.abort(); modal.classList.remove('import-dialog'); }, { once: true });
-    const isStale = () => JSON.stringify(C.store.active()) !== snapshot;
+    const isStale = () => !fresh && JSON.stringify(C.store.active()) !== snapshot;
 
     function sourceView(message = '') {
       draft = null;
@@ -150,7 +152,7 @@
         if (isStale()) { refresh(); return; }
         try {
           const next = P.buildCase(baseline, draft);
-          const saved = C.store.save(next);
+          const saved = fresh ? C.store.add(next) : C.store.save(next);
           const count = draft.rows.filter(row => row.include !== false).length;
           modal.close();
           window.Finora.toast(`${count} cuentas ${mode === 'append' ? 'agregadas' : 'importadas'}.${saved ? ' Guardado en este navegador.' : ' No se pudo conservar el guardado al cerrar el navegador.'}`);

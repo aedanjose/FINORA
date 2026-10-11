@@ -30,6 +30,9 @@
       container.querySelector('#case-select').addEventListener('change', event => {
         if (event.target.value !== '__new') { C.store.setActive(event.target.value); return; }
         event.target.value = c.id;
+        // Una empresa nueva empieza por su documento: en Estados financieros se abre la puerta de entrada.
+        if (window.FinoraStart) { window.FinoraStart.show(); return; }
+        if (document.body.dataset.base !== undefined) { location.href = `${document.body.dataset.base}modulos/estados-financieros/index.html?nueva=1`; return; }
         const modal = openDialog('Nueva empresa', '<form id="new-case-form"><label class="field"><span class="field-label">Nombre de la empresa</span><input class="input" name="name" required maxlength="80" placeholder="Ej. Comercial El Roble"></label><p class="note">Se crea con el catálogo básico de cuentas en blanco. Podrás renombrar, agregar o quitar cuentas.</p><button class="button button-primary" type="submit">Crear empresa</button></form>');
         const form = modal.querySelector('form');
         form.querySelector('input').focus();
