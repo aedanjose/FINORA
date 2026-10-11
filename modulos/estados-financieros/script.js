@@ -54,7 +54,10 @@
   function groupStart(kind, key, label, count, totalKey, context) {
     const id = groupId(kind, key), folded = collapsed.has(id);
     const editable = kind === 'balance' ? '<input class="cell-input group-input" data-group-block="' + context.block + '" data-group-name="' + esc(context.group) + '" id="group-' + context.block + '-' + esc(context.group) + '" value="' + esc(label) + '" aria-label="Nombre del grupo">' : '<span class="ledger-group-label">' + esc(label) + '</span>';
-    return '<tbody class="ledger-group-heading"><tr class="row-group"><td><div class="ledger-group-title"><button class="ledger-fold" type="button" data-fold="' + id + '" aria-expanded="' + !folded + '" aria-controls="' + id + '" aria-label="Mostrar u ocultar ' + esc(label) + '">' + icon('chevron-down') + '</button>' + editable + '<small class="ledger-count">' + count + (count === 1 ? ' cuenta' : ' cuentas') + '</small></div>' + '<span class="ledger-document-check" data-out="rep|' + esc(kind === 'balance' ? BLOCKS[context.block].section + '|' + context.group : 'income:' + incomePart(context.category)) + '"></span>' + '</td>' + outCells(totalKey) + '<td></td></tr></tbody><tbody class="ledger-group-body" id="' + id + '" data-group-body data-kind="' + kind + '"' + (kind === 'balance' ? ' data-block="' + context.block + '" data-group="' + esc(context.group) + '"' : ' data-category="' + esc(context.category) + '"') + (folded ? ' hidden' : '') + '>';
+    return '<tbody class="ledger-group-heading"><tr class="row-group"><td><div class="ledger-group-title"><button class="ledger-fold" type="button" data-fold="' + id + '" aria-expanded="' + !folded + '" aria-controls="' + id + '" aria-label="Mostrar u ocultar ' + esc(label) + '">' + icon('chevron-down') + '</button>' + editable + '<small class="ledger-count">' + count + (count === 1 ? ' cuenta' : ' cuentas') + '</small></div></td><td></td><td></td><td></td></tr></tbody><tbody class="ledger-group-body" id="' + id + '" data-group-body data-kind="' + kind + '"' + (kind === 'balance' ? ' data-block="' + context.block + '" data-group="' + esc(context.group) + '"' : ' data-category="' + esc(context.category) + '"') + (folded ? ' hidden' : '') + '>';
+  }
+  function groupEnd(label, totalKey, reportKey) {
+    return '</tbody><tbody class="ledger-group-total"><tr class="row-subtotal"><td>' + esc(label) + '<span class="ledger-document-check" data-out="rep|' + esc(reportKey) + '"></span></td>' + outCells(totalKey) + '<td></td></tr></tbody>';
   }
   const totalRow = (label, key, reportKey) => '<tbody><tr class="row-total"><td>' + label + (reportKey ? '<span class="ledger-document-check" data-out="rep|' + esc(reportKey) + '"></span>' : '') + '</td>' + outCells(key) + '<td></td></tr></tbody>';
   function renderBalance() {
@@ -75,7 +78,7 @@
           const run = runs.find(r => r.contras[r.contras.length - 1] === a);
           if (run) html += '<tr class="row-net"><td>' + esc(run.asset.name) + ' neto</td>' + outCells('net|' + a.id) + '<td></td></tr>';
         });
-        html += blankRow('balance', key) + '</tbody>';
+        html += blankRow('balance', key) + groupEnd('Total ' + g.name.toLowerCase(), 'sub|' + block.section + '|' + g.name, block.section + '|' + g.name);
       });
       if (bi < 4 && groupsOfBlock(bi).length > 1 && model.reported?.['balance:' + balancePart(bi)]) html += totalRow('Total ' + esc(block.group.toLowerCase()), 'bpart|' + bi, 'balance:' + balancePart(bi));
       html += '<tbody><tr class="row-add"><td colspan="4"><button class="mini-button" type="button" data-add-group="' + bi + '">' + icon('plus') + 'Subgrupo en ' + esc(block.group.toLowerCase()) + '</button></td></tr></tbody>';
@@ -102,7 +105,8 @@
         const rate = rateAccount();
         html += '<tr class="row-account row-tax-rate"><td>Tasa de impuestos (%) <small class="ledger-tax-hint">Opcional, si no hay monto</small></td>' + SIDES.map(side => '<td><input class="cell-input amount" inputmode="decimal" autocomplete="off" data-rate data-side="' + side + '" data-cell-column="' + side + '" id="rate-' + side + '" value="' + esc(rate && Number.isFinite(rate.amounts?.[side]) ? showAmount(+(rate.amounts[side] * 100).toFixed(6)) : '') + '" aria-label="Tasa de impuestos en ' + esc(model.periods[side]) + '"></td>').join('') + '<td></td></tr><tr class="row-warning" id="warning-tax-rate" data-rate-warning hidden><td colspan="4"></td></tr><tr class="row-net" data-tax-computed><td>Impuestos calculados con la tasa</td>' + outCells('itax') + '<td></td></tr>';
       }
-      html += '</tbody>';
+      // Con una sola cuenta el total repetiría la misma cifra; se muestra desde dos cuentas.
+      html += accounts.length > 1 ? groupEnd(block.total || 'Total ' + block.label.toLowerCase(), 'isub|' + block.category, 'income:' + incomePart(block.category)) : '</tbody>';
       if (block.category === 'costSales') html += result('Utilidad bruta', 'grossProfit');
       if (block.category === 'opex') html += result('Utilidad operativa', 'ebit');
       if (block.category === 'interest') html += result('Utilidad antes de impuestos', 'ebt');

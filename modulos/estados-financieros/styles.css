@@ -44,6 +44,9 @@
 .ledger-table .ledger-fold[aria-expanded="false"] .icon { transform: rotate(-90deg); }
 .ledger-table .row-group td { padding-top: 8px; padding-bottom: 8px; border-bottom-color: var(--border); }
 .ledger-table .row-group td:not(:first-child) { font-weight: 700; padding-right: 24px; }
+.ledger-table .ledger-group-total .row-subtotal td { padding-top: 11px; padding-bottom: 11px; font-weight: 700; border-top: 1px solid var(--muted); border-bottom: 1px solid var(--border); }
+.ledger-table .ledger-group-total .row-subtotal td:first-child { padding-left: 27px; }
+.ledger-table .ledger-group-total .row-subtotal td:nth-child(2), .ledger-table .ledger-group-total .row-subtotal td:nth-child(3) { padding-right: 24px; }
 .ledger-table .row-section td { padding: 15px 18px 12px; font-size: 11px; letter-spacing: 1.2px; }
 .ledger-table :is(.row-total,.row-result,.row-final) td { padding-top: 13px; padding-bottom: 13px; }
 .ledger-table :is(.row-total,.row-result,.row-final,.row-net) td:nth-child(2), .ledger-table :is(.row-total,.row-result,.row-final,.row-net) td:nth-child(3) { padding-right: 24px; }
