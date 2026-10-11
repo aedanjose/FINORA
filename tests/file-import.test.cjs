@@ -67,3 +67,10 @@ test('Lista hojas, admite hojas vacías y bloquea libros dañados o demasiado gr
  assert.throws(()=>T.read(new Uint8Array(T.MAX_BYTES+1),'x.xlsx',XLSX),/10 MB/);assert.throws(()=>T.read(new Uint8Array([1]),'x.pdf',XLSX),/xlsx/);
  wb.Sheets.Balance['!ref']='A1:ZZ99999';assert.throws(()=>T.sheetData(wb,'Balance',XLSX),/5,000/);
 });
+
+test('Encabezados con fechas conservan la moneda sin introducir años adicionales', () => {
+  const data={rows:[['BALANCE GENERAL'],['Saldos al 31 de diciembre de 2026. Moneda: C$'],['Cuenta',2023,2025,2026],['Caja',1,2,3]],problems:[]};
+  const text=T.extract(data,config(data)).text;
+  assert.match(text,/Moneda: C\$/);assert.doesNotMatch(text,/2023/);
+  assert.equal(P.analyze(text,{kind:'balance',periods:{previous:'2025',current:'2026'}}).units.currency,'C$');
+});

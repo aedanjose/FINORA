@@ -100,3 +100,7 @@
 #file-preview .import-table td:not(:first-child) { text-align:right; }
 @media screen { html[data-presentation="on"] :is(.file-columns label,.file-years-note,.file-drop > span:nth-child(2)) { font-size:14px; } }
 @media (max-width:760px) { .file-columns { grid-template-columns:1fr; }.file-drop { padding:16px; }.file-toolbar-actions { width:100%; }.file-toolbar-actions .button { flex:1 1 auto; } }
+
+.import-period-conflict { padding:14px 16px;margin:14px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface-soft); }
+.import-period-conflict p { margin:0 0 10px; }
+.import-period-conflict p:last-child { margin:10px 0 0; }

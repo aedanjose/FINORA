@@ -52,7 +52,9 @@ function makeBook() {const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet
   assert.equal(await page.inputValue('#file-previous-year'),'2024');assert.equal(await page.inputValue('#file-current-year'),'2025');
   await page.selectOption('#file-previous','2');assert.equal(await page.inputValue('#file-previous-year'),'2023');
   await page.click('#file-review');await page.waitForSelector('#import-summary');
-  assert.match(await page.locator('#import-errors').innerText(),/años no coinciden/);assert.equal(await page.locator('[data-import-action="apply"]').isDisabled(),true);
+  assert.doesNotMatch(await page.locator('#import-errors').innerText(),/años no coinciden/);assert.equal(await page.locator('#import-period-notice').isVisible(),true);
+  const csvConfirm=page.locator('[data-edit="confirmed"]');for(let i=0;i<await csvConfirm.count();i++)await csvConfirm.nth(i).check();
+  assert.equal(await page.locator('[data-import-action="apply"]').isDisabled(),false);
   await page.click('[data-import-action="cancel"]');
   console.log('ok CSV de tres años y protección de períodos existentes');
 

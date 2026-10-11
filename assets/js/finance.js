@@ -72,6 +72,11 @@
     ['IVA por pagar','liability','current',null],['IVA x pagar','liability','current',null],['IR por pagar','liability','current',null],['IR x pagar','liability','current',null],['Acreedores','liability','current',null],['Acreedor','liability','current',null],
     ['Banco','asset','current','cash'],['Bancos','asset','current','cash'],['Clientes','asset','current','receivables'],['Cliente','asset','current','receivables'],['Inventario','asset','current','inventory'],['Proveedores','liability','current','payables'],['Proveedor','liability','current','payables'],
     ['Deuda por pagar a corto plazo','liability','current',null],['Deuda por pagar a largo plazo','liability','noncurrent','longDebt'],['Impuesto sobre la renta diferido','liability','noncurrent',null],
+    ['Cuentas por cobrar / clientes','asset','current','receivables'],['Cuentas por pagar / proveedores','liability','current','payables'],
+    ['Propiedad, planta y equipo (costo)','asset','noncurrent','fixed'],
+    ['Préstamos de corto plazo','liability','current',null],['Préstamos a corto plazo','liability','current',null],
+    ['Préstamos a largo plazo','liability','noncurrent','longDebt'],['Préstamos de largo plazo','liability','noncurrent','longDebt'],
+    ['Capital aportado','equity',null,null],['Utilidades retenidas de períodos anteriores','equity',null,null],['Utilidad neta del ejercicio','equity',null,null],
   ].map(([name,section,term,role,sign=1,memo=false])=>({name,section,term,role,sign,memo}));
   const matchAccount=name=>{const key=normalizeName(name);const hit=key?accountCatalog.find(entry=>normalizeName(entry.name)===key):null;return hit?{...hit}:null;};
   const defaultAccounts=()=>accountTemplate.map(([id,name,section,term,role])=>({id,name,section,term,role,sign:1,memo:false,amounts:{previous:null,current:null}}));
@@ -143,6 +148,7 @@
     ['Gastos operativos totales','opex'],['Gastos de venta','opex'],['Gastos administrativos','opex'],['Gastos generales y de administración','opex'],['Gastos de arrendamiento','opex'],['Gasto por depreciación','opex'],
     ['Gastos por intereses','interest'],['Impuestos','taxes'],['Beneficio fiscal','taxes',-1],['Dividendos preferentes','preferred'],
     ['Ventas a crédito','creditSales'],['De los gastos: costos fijos operativos','fixedCosts'],['De los costos de ventas: costos fijos','fixedCostSales'],['Compras reales a crédito','creditPurchases'],['Número de acciones','shares'],['Otros ingresos','otherIncome'],['Ingresos financieros','otherIncome'],['Tasa de impuestos','taxRate'],
+    ['Ventas netas','sales'],['Gastos administrativos y ventas','opex'],['Gastos financieros (intereses)','interest'],['Impuesto sobre la renta','taxes'],
   ].map(([name,category,sign=1])=>({name,category,sign}));
   const matchIncomeAccount=name=>{const key=normalizeName(name);const hit=key?incomeCatalog.find(entry=>normalizeName(entry.name)===key):null;return hit?{...hit}:null;};
   const defaultIncomeAccounts=()=>incomeTemplate.map(([category,name])=>({id:category,name,category,sign:1,amounts:{previous:null,current:null}}));

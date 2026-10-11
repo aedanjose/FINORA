@@ -73,8 +73,12 @@
     if (has('patrimonio') || has('capital contable') || has('capital social') || has('accionistas')) return { section: 'equity', term: null };
     return null;
   }
+  // Estos nombres con importes vacíos son encabezados, incluso si están en el catálogo.
+  const balanceSection = n => /^(?:activos?|pasivos?)(?: (?:corrientes?|no corrientes?|circulantes?|no circulantes?|fijos|de corto plazo|de largo plazo))?$|^(?:patrimonio(?: de los accionistas)?|capital(?: contable)?|otros activos)$/.test(n);
   const incomeHeader = n => /^(total|suma|subtotal)\b/.test(n) ? null : /gastos (operativos|de operacion)/.test(n) ? 'opex' : /gastos financieros|intereses/.test(n) ? 'interest' : /^costo|costos de/.test(n) ? 'costSales' : /^(ingresos|ventas)/.test(n) ? 'sales' : /impuestos/.test(n) ? 'taxes' : /dividendos/.test(n) ? 'preferred' : null;
   function balanceTotalPart(n) {
+    // La diferencia es un control del documento, nunca una cuenta del pasivo.
+    if (/^diferencia(?:\s*\(debe ser cero\)| (?:en|del) balance)$/.test(n)) return 'difference';
     n = n.replace(/^(total|suma|subtotal),\s*/, '$1 ');
     const isTotal = /^(total|suma|subtotal)\b/.test(n), rest = n.replace(/^(total de|total|suma de|suma|subtotal de|subtotal)\s+/, '');
     const head = balanceHeader(rest);
@@ -155,7 +159,7 @@
     for (const it of items) {
       const hasData = it.amounts.some(a => a.value !== null) || (it.delimited && it.amounts.length && (isBalance ? F.matchAccount(plain(stripPrefix(it.name).text)) : F.matchIncomeAccount(plain(stripPrefix(it.name).text))));
       const { text: bare, minus } = stripPrefix(it.name), bn = norm(plain(bare));
-      if (!hasData) {                                    // encabezado de sección o título
+      if (!hasData || (isBalance && balanceSection(it.n) && it.amounts.every(a => a.value === null && !a.invalid))) { // encabezado de sección o título
         const h = isBalance ? balanceHeader(it.n) : incomeHeader(it.n);
         if (isBalance && h) { context = h; block = []; }
         else if (!isBalance && h) { context = { category: h }; block = []; }

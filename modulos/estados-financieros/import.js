@@ -15,8 +15,9 @@
     const kind = options.kind === 'income' ? 'income' : 'balance';
     const mode = options.mode === 'append' ? 'append' : 'replace';
     // Con options.baseline la empresa todavía no existe: se crea solo al aplicar (cancelar no deja empresas vacías).
-    const fresh = !!options.baseline;
-    const baseline = fresh ? options.baseline : C.store.active();
+    let fresh = !!options.baseline;
+    let baseline = fresh ? options.baseline : C.store.active();
+    let separatedPeriods = false;
     const snapshot = JSON.stringify(baseline);
     const label = kind === 'balance' ? 'balance general' : 'estado de resultados';
     let source = options.text || '', draft = null;
@@ -26,6 +27,22 @@
     const abort = new AbortController();
     modal.addEventListener('close', () => { abort.abort(); modal.classList.remove('import-dialog'); }, { once: true });
     const isStale = () => !fresh && JSON.stringify(C.store.active()) !== snapshot;
+
+    // Revisar un documento de otros años prepara una copia nueva, sin cambiar el guardado actual.
+    function resolvePeriods() {
+      if (!draft || fresh || mode !== 'replace') return;
+      const p = draft.periods;
+      const valid = /^\d{4}$/.test(String(p.previous)) && /^\d{4}$/.test(String(p.current)) && +p.previous >= 1900 && +p.current <= 2100 && +p.previous < +p.current;
+      const differs = SIDES.some(side => String(p[side]) !== String(baseline.periods[side]));
+      const hasData = ['balance', 'income'].some(kind => (baseline[kind] || []).some(row => SIDES.some(side => Number.isFinite(row.amounts?.[side]))));
+      if (!valid || !differs || !hasData) return;
+      const name = options.fileName ? options.fileName.split(' · ')[0].replace(/\.(xlsx|csv)$/i, '') : P.detectCompany(source) || 'Documento financiero';
+      const next = C.blankCase(name);
+      next.periods = { ...p };
+      next.currency = draft.units?.currency || baseline.currency;
+      next.scale = draft.units?.scale || (draft.units?.currency ? '' : baseline.scale);
+      baseline = next; fresh = true; separatedPeriods = true;
+    }
 
     function sourceView(message = '') {
       draft = null;
@@ -56,7 +73,9 @@
     }
 
     function reviewView() {
-      workspace.innerHTML = `<p class="import-kicker">02 · Revisar antes de aplicar</p>${options.fileName ? `<p class="import-help">Archivo: ${esc(options.fileName)}</p>` : ''}<div class="import-destination"><strong>${esc(baseline.name)}</strong><span>${esc(label)} · ${mode === 'append' ? 'Agregar cuentas' : 'Reemplazar este estado'}</span></div>
+      resolvePeriods();
+      workspace.innerHTML = `<p class="import-kicker">02 · Revisar antes de aplicar</p>${options.fileName ? `<p class="import-help">Archivo: ${esc(options.fileName)}</p>` : ''}<div class="import-destination"><strong data-import-destination-name>${esc(baseline.name)}</strong><span data-import-destination-mode>${esc(label)} · ${fresh ? 'Documento nuevo' : mode === 'append' ? 'Agregar cuentas' : 'Reemplazar este estado'}</span></div>
+        <div id="import-period-notice" class="import-period-conflict" role="status" hidden></div>
         <div class="import-periods">${SIDES.map((side, i) => `<label class="field-label" for="import-${side}">${i ? 'Año actual' : 'Año anterior'}<input class="input" id="import-${side}" data-import-period="${side}" inputmode="numeric" maxlength="4" value="${esc(draft.periods[side])}"></label>`).join('')}<p>Revisa a qué año corresponde cada columna. Los valores se muestran en el orden anterior → actual.</p></div>${unitsChoice()}
         <p id="import-summary" class="import-summary" aria-live="polite"></p>
         <div class="import-table-scroll"><table class="import-table"><thead><tr><th scope="col">Incluir</th><th scope="col">Cuenta y clasificación</th><th scope="col" data-import-heading="previous"></th><th scope="col" data-import-heading="current"></th></tr></thead><tbody>${draft.rows.map(row => `<tr data-import-row="${esc(row.id)}"><td><input type="checkbox" data-edit="include"${row.include !== false ? ' checked' : ''} aria-label="Incluir ${esc(row.name)}"></td><td><input class="import-account-name" data-edit="name" value="${esc(row.name)}" aria-label="Nombre de la cuenta"><div class="import-row-tags">${row.sign === -1 ? '<span>Resta</span>' : ''}${row.role ? `<span>${esc(roles[row.role] || row.role)}</span>` : ''}${row.needsReview ? '<span class="import-review-tag">Revisar clasificación</span>' : ''}</div>${classify(row)}${row.needsReview ? `<label class="import-confirm"><input type="checkbox" data-edit="confirmed"${row.confirmed ? ' checked' : ''}>Revisé la clasificación de esta cuenta</label>` : ''}<p class="import-row-error" data-row-errors="${esc(row.id)}"></p></td>${SIDES.map(side => `<td><input class="import-number" data-edit="amount" data-import-side="${side}" inputmode="decimal" autocomplete="off" value="${esc(number(row.amounts?.[side]))}" aria-label="${esc(row.name)}, ${esc(draft.periods[side])}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -70,6 +89,15 @@
 
     function refresh() {
       if (!draft) return;
+      resolvePeriods();
+      workspace.querySelector('[data-import-destination-name]').textContent = baseline.name;
+      workspace.querySelector('[data-import-destination-mode]').textContent = label + ' · ' + (fresh ? 'Documento nuevo' : mode === 'append' ? 'Agregar cuentas' : 'Reemplazar este estado');
+      const notice = workspace.querySelector('#import-period-notice');
+      notice.hidden = !separatedPeriods;
+      notice.textContent = separatedPeriods ? 'Se guardará como un documento nuevo para estos años. Puedes clasificar y corregir sus cuentas; los datos anteriores se conservan. Solo se guarda al pulsar Aplicar.' : '';
+      workspace.querySelector('.import-apply-note').textContent = fresh ? 'Al aplicar, se guardará un documento nuevo. Los documentos anteriores se conservan.' : mode === 'append' ? 'Se agregarán las cuentas incluidas al estado actual.' : 'Al aplicar, se reemplazarán las cuentas del ' + label + '. El otro estado y los datos actuales se conservan.';
+      workspace.querySelector('[data-import-action="apply"]').textContent = fresh ? 'Aplicar y guardar documento' : mode === 'append' ? 'Agregar cuentas revisadas' : 'Aplicar cuentas revisadas';
+      if (fresh) modal.querySelector('#dialog-title').textContent = 'Nuevo documento financiero';
       const validation = P.validate(draft, baseline);
       const errors = [...validation.errors];
       if (isStale()) errors.push({ code: 'stale', message: 'La empresa cambió mientras revisabas. Cierra esta ventana y vuelve a pegar para trabajar con los datos actuales.' });
@@ -87,7 +115,9 @@
       const included = draft.rows.filter(row => row.include !== false).length;
       workspace.querySelector('#import-summary').textContent = `${included} cuentas incluidas · ${draft.totals?.length || 0} totales detectados${errors.length ? ` · ${errors.length} pendientes de revisión` : ' · Listo para aplicar'}`;
       const globalErrors = errors.filter(item => !item.rowId);
-      workspace.querySelector('#import-errors').innerHTML = globalErrors.map(item => `<p class="import-error">${esc(item.message)}</p>`).join('') + (validation.warnings || []).map(item => `<p class="import-help">${esc(typeof item === 'string' ? item : item.message)}</p>`).join('');
+      const periodChoice = errors.some(item => item.code === 'period-conflict') && !fresh && mode === 'replace'
+        ? `<div class="import-period-conflict"><p>El documento corresponde a <strong>${esc(draft.periods.previous)} y ${esc(draft.periods.current)}</strong>; los datos actuales son de <strong>${esc(baseline.periods.previous)} y ${esc(baseline.periods.current)}</strong>.</p><button type="button" class="button button-secondary" data-import-action="new-document">Importar como documento nuevo</button><p class="import-help">Conserva el documento actual. El nuevo se guardará solo al pulsar Aplicar.</p></div>` : '';
+      workspace.querySelector('#import-errors').innerHTML = periodChoice + globalErrors.map(item => `<p class="import-error">${esc(item.message)}</p>`).join('') + (validation.warnings || []).map(item => `<p class="import-help">${esc(typeof item === 'string' ? item : item.message)}</p>`).join('');
       workspace.querySelector('[data-import-action="apply"]').disabled = !included || errors.length > 0;
       const checks = (validation.totals || []).flatMap(total => SIDES.filter(side => Number.isFinite(total.amounts?.[side])).map(side => ({
         name: total.name, period: draft.periods[side], reported: total.amounts[side], calculated: total.calculated?.[side], difference: total.difference?.[side],
@@ -128,7 +158,7 @@
     workspace.addEventListener('change', event => {
       const input = event.target;
       if (draft && input.dataset.importUnits !== undefined) { draft.applyUnits = input.checked; return; }
-      if (!draft || !input.dataset.edit) return;
+      if (!draft || !input.dataset.edit || (input.tagName !== 'SELECT' && input.type !== 'checkbox')) return;
       const row = draft.rows.find(item => item.id === input.closest('[data-import-row]')?.dataset.importRow);
       if (!row) return;
       const key = input.dataset.edit;
@@ -147,6 +177,15 @@
       const action = event.target.closest('[data-import-action]')?.dataset.importAction;
       if (!action) return;
       if (action === 'file') { modal.addEventListener('close', () => window.FinoraFiles.open(fresh ? { newCase: true } : { kind }), { once: true }); modal.close(); return; }
+      if (action === 'new-document') {
+        if (isStale()) { refresh(); return; }
+        const name = options.fileName ? options.fileName.split(' · ')[0].replace(/\.(xlsx|csv)$/i, '') : P.detectCompany(source) || 'Documento financiero';
+        const nextBaseline = C.blankCase(name);
+        nextBaseline.periods = { ...draft.periods }; if (!draft.applyUnits) { nextBaseline.currency = baseline.currency; nextBaseline.scale = baseline.scale; }
+        const preparedDraft = structuredClone(draft);
+        modal.addEventListener('close', () => open({ kind, text: source, baseline: nextBaseline, preparedDraft, fileName: options.fileName }), { once: true });
+        modal.close(); return;
+      }
       if (action === 'cancel') modal.close();
       if (action === 'back') sourceView();
       if (action === 'analyze') analyze();
@@ -165,7 +204,8 @@
       }
     }, { signal: abort.signal });
     sourceView();
-    if (source) analyze();
+    if (options.preparedDraft) { draft = options.preparedDraft; reviewView(); }
+    else if (source) analyze();
   }
 
   window.FinoraImport = { open };

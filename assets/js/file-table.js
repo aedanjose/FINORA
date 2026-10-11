@@ -71,7 +71,7 @@
     const text = [], selected = [];
     // Conserva títulos y unidades; los demás años del documento no se añaden al encabezado seleccionado.
     for (const row of rows.slice(0, Math.max(0, config.header))) {
-      const label = row.filter(v => typeof v === 'string' && !/\d/.test(v)).map(clean).filter(Boolean).join(' ');
+      const label = row.filter(v => typeof v === 'string' && (!/\d/.test(v) || /moneda|cifras|expresad|c\$|u\$|usd|nio|eur|c[oó]rdobas|d[oó]lares|miles|millones/i.test(v))).map(v => clean(v).replace(/\b(?:19|20)\d{2}\b/g, '').trim()).filter(Boolean).join(' ');
       if (label) text.push(label);
     }
     text.push(`Cuenta\t${before}\t${after}`);
