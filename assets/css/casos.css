@@ -57,9 +57,15 @@
 /* Celdas editables */
 .cell-input { width: 100%; min-height: 32px; padding: 5px 9px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--ink); font: inherit; }
 .cell-input.amount { text-align: right; min-width: 118px; font-variant-numeric: tabular-nums; }
-.cell-input.name { min-width: 200px; }
+.cell-input.name { min-width: 270px; }
 .cell-input:focus { outline: 2px solid var(--blue); outline-offset: 0; border-color: transparent; }
 .cell-input.invalid { border-color: var(--negative); }
+.cell-input.over { border-color: var(--negative); box-shadow: inset 0 0 0 1px var(--negative); color: var(--negative); }
+.contra-caption { display: block; margin: 4px 0 0 2px; font-size: 10px; color: var(--muted); }
+.contra-caption.warn { color: var(--negative); font-weight: 600; }
+.status-chip .mini-button { margin-left: 4px; }
+.mini-button.move { width: 26px; }
+.mini-button:disabled { opacity: .25; cursor: default; background: transparent; }
 .cell-select { min-height: 32px; padding: 4px 6px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 11px; }
 .group-input { font-weight: 600; max-width: 320px; }
 .row-actions { display: inline-flex; gap: 4px; }
@@ -90,6 +96,8 @@
   html[data-presentation="on"] .status-chip.ok { color: var(--green); border-color: #3e8a72; }
   html[data-presentation="on"] .status-chip.bad { color: var(--negative); border-color: #a45a6b; }
   html[data-presentation="on"] .mini-button { color: #a4ccff; font-size: 13px; }
+  html[data-presentation="on"] .contra-caption { font-size: 12px; color: #c2d6f0; }
+  html[data-presentation="on"] .contra-caption.warn { color: var(--negative); }
 }
 @media (max-width: 900px) { .case-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .case-details .case-field:first-child { grid-column: 1 / -1; } }
 @media (max-width: 760px) {

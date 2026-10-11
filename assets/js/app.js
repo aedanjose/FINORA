@@ -19,6 +19,7 @@
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
     'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+    'chevron-up': '<path d="m6 15 6-6 6 6"/>',
     'chevron-right': '<path d="m9 6 6 6-6 6"/>',
     'arrow-up-right': '<path d="M7 17 17 7M7 7h10v10"/>',
     'arrow-down-right': '<path d="m7 7 10 10M7 17h10V7"/>',

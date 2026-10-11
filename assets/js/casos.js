@@ -183,6 +183,19 @@
     catch (_) { return { before: values.previous, after: values.current, absolute: null, relative: null, relativeReason: 'Importe inválido', verticalBefore: null, verticalAfter: null }; }
   }
 
+  // Restas de un grupo: cada activo con las contracuentas que tiene justo debajo (pueden ser varias seguidas).
+  // Una resta al inicio del grupo, sin activo encima, queda «huérfana».
+  function contraRuns(list) {
+    const runs = [], orphans = [];
+    let run = null;
+    list.forEach(a => {
+      if ((a.sign ?? 1) === 1) { run = { asset: a, contras: [] }; runs.push(run); }
+      else if (run) run.contras.push(a);
+      else orphans.push(a);
+    });
+    return { runs: runs.filter(r => r.contras.length), orphans };
+  }
+
   // ---------- Balance general, cuenta por cuenta ----------
   function analyzeBalance(c) {
     const accounts = c.balance || [];
@@ -222,14 +235,15 @@
         section = g.section; push('section', SECTIONS[section], null, kind);
       }
       push('group', g.name, null, kind, { key: g.key });
-      g.accounts.forEach((a, i) => {
+      const { runs } = contraRuns(g.accounts);
+      g.accounts.forEach(a => {
         const values = { previous: a.amounts?.previous ?? null, current: a.amounts?.current ?? null };
         push('account', String(a.name || '').trim() || 'Cuenta sin nombre', values, kind, { id: a.id, sign: a.sign ?? 1, role: a.role ?? null, groupKey: g.key });
-        // Contracuenta justo después de su activo: se muestra el neto, como en el documento.
-        const prev = g.accounts[i - 1];
-        if ((a.sign ?? 1) === -1 && prev && (prev.sign ?? 1) === 1) {
-          const net = Object.fromEntries(SIDES.map(side => [side, sum([signedAmount(prev, side), signedAmount(a, side)])]));
-          push('net', `${String(prev.name || '').trim()} neto`, net, kind, { of: prev.id, contra: a.id, role: prev.role ?? null, groupKey: g.key });
+        // Después de la última contracuenta de un activo se muestra el neto, como en el documento.
+        const run = runs.find(r => r.contras[r.contras.length - 1] === a);
+        if (run) {
+          const net = Object.fromEntries(SIDES.map(side => [side, sum([run.asset, ...run.contras].map(x => signedAmount(x, side)))]));
+          push('net', `${String(run.asset.name || '').trim()} neto`, net, kind, { of: run.asset.id, contra: a.id, contras: run.contras.map(x => x.id), role: run.asset.role ?? null, groupKey: g.key });
         }
       });
       push('subtotal', `Total ${g.name.toLowerCase()}`, g.total, kind, { key: g.key });
@@ -244,7 +258,28 @@
     }
     const difference = Object.fromEntries(SIDES.map(side => [side, has(totals.assets[side]) && has(totals.funding[side]) ? totals.assets[side] - totals.funding[side] : null]));
     const balanced = Object.fromEntries(SIDES.map(side => [side, difference[side] === null ? null : Math.abs(difference[side]) <= 0.01]));
-    return { rows, groups, totals, bases, engine, errors, difference, balanced, hasPrevious: sideHasData(accounts, 'previous'), hasCurrent: sideHasData(accounts, 'current') };
+    // Restas mal planteadas: una contracuenta mayor que su activo, una resta sin cuenta a la cual restar
+    // o una depreciación dentro del activo circulante. Se explican en lugar del mensaje genérico del motor.
+    const issues = [];
+    const label = a => String(a.name || '').trim() || 'Cuenta sin nombre';
+    groups.forEach(g => {
+      const { runs, orphans } = contraRuns(g.accounts);
+      orphans.forEach(a => { if (SIDES.some(side => has(a.amounts?.[side]) && a.amounts[side] !== 0)) issues.push({ type: 'orphan', id: a.id, ids: [a.id], name: label(a), group: g.name, sides: [], text: `«${label(a)}» resta, pero no tiene encima una cuenta a la cual restar. Colócala justo debajo del activo que corrige.` }); });
+      runs.forEach(run => {
+        const total = side => sum(run.contras.map(x => has(x.amounts?.[side]) ? x.amounts[side] : null));
+        const sides = SIDES.filter(side => has(total(side)) && has(run.asset.amounts?.[side]) && total(side) > run.asset.amounts[side]);
+        if (!sides.length) return;
+        const many = run.contras.length > 1, names = run.contras.map(x => `«${label(x)}»`);
+        issues.push({ type: 'exceeds', id: run.contras[run.contras.length - 1].id, ids: run.contras.map(x => x.id), of: run.asset.id, name: run.contras.map(label).join(' y '), ofName: label(run.asset), sides,
+          text: `${many ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]} (restas) superan` : `${names[0]} (resta) supera`} a «${label(run.asset)}» en ${sides.map(side => c.periods?.[side] ?? side).join(' y ')}.` });
+      });
+    });
+    accounts.forEach(a => {
+      if (a.section === 'asset' && a.term === 'current' && /deprec|amortiz|agotamiento/.test(normalize(a.name))) issues.push({ type: 'misplaced', id: a.id, name: String(a.name).trim(), sides: [], text: `«${String(a.name).trim()}» está en el activo circulante; la depreciación corrige activos fijos y va en el activo no circulante.` });
+    });
+    // Si el motor falla por una resta mal planteada, se muestra la causa concreta.
+    SIDES.forEach(side => { const cause = issues.find(x => x.sides.includes(side) || x.type === 'orphan'); if (errors[side] && cause) errors[side] = cause.text; });
+    return { rows, groups, totals, bases, engine, errors, issues, difference, balanced, hasPrevious: sideHasData(accounts, 'previous'), hasCurrent: sideHasData(accounts, 'current') };
   }
 
   // ---------- Estado de resultados, cuenta por cuenta ----------
@@ -354,7 +389,7 @@
   // Partidas de un grupo para comentar: los activos con contracuenta se comentan por su neto.
   function groupItems(balance, key) {
     const rows = balance.rows.filter(r => r.groupKey === key);
-    const paired = new Set(rows.filter(r => r.type === 'net').flatMap(r => [r.of, r.contra]));
+    const paired = new Set(rows.filter(r => r.type === 'net').flatMap(r => [r.of, ...r.contras]));
     return rows.filter(r => (r.type === 'account' && !paired.has(r.id)) || r.type === 'net')
       .map(r => ({ label: r.label, before: r.before, after: r.after, absolute: r.absolute, relative: r.relative, verticalAfter: r.verticalAfter, verticalBefore: r.verticalBefore, role: r.role, type: r.type, id: r.id }));
   }
@@ -479,15 +514,16 @@
     };
     const reported = c.reported || {};
     for (const side of SIDES) {
-      if (balance.errors[side]) out.push({ name: 'Clasificación de cuentas', period: p[side], reported: null, calculated: null, difference: null, ok: false, note: balance.errors[side] });
+      if (balance.errors[side] && !balance.issues.some(x => x.text === balance.errors[side])) out.push({ name: 'Clasificación de cuentas', period: p[side], reported: null, calculated: null, difference: null, ok: false, note: balance.errors[side] });
     }
     balance.groups.forEach(g => SIDES.forEach(side => { if (has(reported[g.key]?.[side])) add(g.name, side, reported[g.key][side], g.total[side], 'Total del documento vs suma de cuentas'); }));
     [['assets', 'Total activos'], ['liabilities', 'Total pasivo'], ['funding', 'Total pasivo y capital']].forEach(([key, name]) => SIDES.forEach(side => { if (has(reported[key]?.[side])) add(name, side, reported[key][side], balance.totals[key][side], 'Total del documento vs suma de cuentas'); }));
     SIDES.forEach(side => { if (has(balance.totals.assets[side]) || has(balance.totals.funding[side])) add('Ecuación contable', side, balance.totals.assets[side], balance.totals.funding[side], 'Activo = Pasivo + Capital'); });
     // Una contracuenta no puede ser mayor que el activo que corrige.
-    balance.rows.filter(r => r.type === 'net').forEach(r => SIDES.forEach(side => {
-      if (has(r.values[side]) && r.values[side] < 0) out.push({ name: r.label, period: p[side], reported: null, calculated: r.values[side], difference: null, ok: false, note: 'La depreciación acumulada supera al activo' });
-    }));
+    balance.issues.forEach(x => {
+      if (x.type === 'exceeds') x.sides.forEach(side => { const net = balance.rows.find(r => r.type === 'net' && r.contra === x.id); out.push({ name: net ? net.label : x.name, period: p[side], reported: null, calculated: net?.values[side] ?? null, difference: null, ok: false, note: x.text }); });
+      else out.push({ name: x.name, period: '—', reported: null, calculated: null, difference: null, ok: false, note: x.text });
+    });
     const blanks = (c.balance || []).filter(a => SIDES.some(side => !has(a.amounts?.[side])) && SIDES.some(side => has(a.amounts?.[side])));
     if (blanks.length) out.push({ name: 'Cuentas incompletas', period: '—', reported: null, calculated: null, difference: null, ok: false, note: `Sin importe en un período: ${blanks.map(a => a.name).join(', ')}. Escribe 0 si la cuenta no existía.` });
     if (!income.empty) {
@@ -498,7 +534,7 @@
     return { items: out, pending, ok: pending === 0 };
   }
 
-  const api = { SIDES, BLOCKS, SECTIONS, INCOME_BLOCKS, SAMPLE_IDS, samples: Object.fromEntries(SAMPLE_IDS.map(id => [id, () => SAMPLES[id]()])), blankCase, defaultGroup, store, analyzeBalance, analyzeIncome, indicators, ratios, interpret, recommend, checks, fmt, engine: F };
+  const api = { contraRuns, SIDES, BLOCKS, SECTIONS, INCOME_BLOCKS, SAMPLE_IDS, samples: Object.fromEntries(SAMPLE_IDS.map(id => [id, () => SAMPLES[id]()])), blankCase, defaultGroup, store, analyzeBalance, analyzeIncome, indicators, ratios, interpret, recommend, checks, fmt, engine: F };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FinoraCasos = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

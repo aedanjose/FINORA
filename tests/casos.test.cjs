@@ -162,5 +162,30 @@ test('Caso en blanco: estructura completa sin errores', () => {
   assert.deepEqual(C.BLOCKS.map(x => x.group), ['Activos circulantes', 'Activos no circulantes', 'Pasivo de corto plazo', 'Pasivo de largo plazo', 'Capital']);
 });
 
+test('Restas mal planteadas: mensaje claro en lugar del error genérico del motor', () => {
+  const c = C.samples.dayton();
+  c.balance.splice(4, 0, { id: 'x', name: 'Depreciacion', section: 'asset', term: 'current', role: null, sign: -1, amounts: { previous: 5000, current: 60000 } });
+  const b = C.analyzeBalance(c);
+  const exceeds = b.issues.find(x => x.type === 'exceeds');
+  assert.equal(exceeds.ofName, 'Otros activos corrientes');
+  assert.deepEqual(exceeds.sides, ['previous', 'current']);
+  assert.match(b.errors.current, /«Depreciacion» \(resta\) supera a «Otros activos corrientes» en 2011 y 2012/);
+  assert.ok(b.issues.some(x => x.type === 'misplaced' && x.id === 'x'));
+  const notes = C.checks(c, b).items.filter(x => x.ok === false).map(x => x.note).join('\n');
+  assert.ok(!/de los cuales/.test(notes), notes);
+  assert.match(notes, /va en el activo no circulante/);
+  const orphan = C.samples['mundo-moda']();
+  orphan.balance.unshift({ id: 'o', name: 'Estimación de incobrables', section: 'asset', term: 'current', role: null, sign: -1, amounts: { previous: 100, current: 100 } });
+  assert.ok(C.analyzeBalance(orphan).issues.some(x => x.type === 'orphan' && x.id === 'o'));
+  // Dos restas seguidas corrigen al mismo activo: un solo neto, sin restas huérfanas.
+  const two = C.samples.dayton();
+  two.balance.splice(5, 0, { id: 'd2', name: 'Deterioro', section: 'asset', term: 'noncurrent', role: 'fixed', sign: -1, amounts: { previous: 0, current: 940 } });
+  const tb = C.analyzeBalance(two);
+  assert.deepEqual(tb.issues, []);
+  const nets = tb.rows.filter(r => r.type === 'net');
+  assert.equal(nets.length, 1); assert.deepEqual(nets[0].contras.sort(), ['d2', 'dy-b6']);
+  close(nets[0].after, 204960 - 940 - 110020, 6);
+});
+
 console.log(`\n${passed} pasan, ${failed} fallan`);
 process.exitCode = failed ? 1 : 0;

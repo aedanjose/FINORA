@@ -70,14 +70,15 @@
       groupsOfBlock(bi).forEach(g => {
         const key = `${block.section}|${g.name}`;
         html += `<tr class="row-group"><td><input class="cell-input group-input" data-group-block="${bi}" data-group-name="${esc(g.name)}" id="group-${bi}-${esc(g.name)}" value="${esc(g.name)}" aria-label="Nombre del grupo"></td><td colspan="4"></td><td><button class="mini-button" type="button" data-add-account="${bi}" data-group="${esc(g.name)}">${icon('plus')}Cuenta</button></td></tr>`;
+        const { runs } = C.contraRuns(g.accounts);
         g.accounts.forEach((a, i) => {
           const roles = ROLES[`${a.section}|${a.term}`];
           const roleCell = roles ? `<select class="cell-select" data-role="${esc(a.id)}" aria-label="Uso en razones de ${esc(a.name)}"><option value="">—</option>${roles.map(([value, label]) => `<option value="${value}"${a.role === value ? ' selected' : ''}>${label}</option>`).join('')}</select>` : '<span class="muted">—</span>';
-          html += `<tr class="row-account${(a.sign ?? 1) === -1 ? ' row-contra' : ''}"><td><input class="cell-input name" data-name="${esc(a.id)}" id="name-${esc(a.id)}" value="${esc(a.name)}" placeholder="Nombre de la cuenta" aria-label="Nombre de la cuenta"></td>${amountCells(a, 'amount')}
+          html += `<tr class="row-account${(a.sign ?? 1) === -1 ? ' row-contra' : ''}"><td><input class="cell-input name" data-name="${esc(a.id)}" id="name-${esc(a.id)}" value="${esc(a.name)}" placeholder="Nombre de la cuenta" aria-label="Nombre de la cuenta">${(a.sign ?? 1) === -1 ? `<span class="contra-caption" data-contra-caption="${esc(a.id)}"></span>` : ''}</td>${amountCells(a, 'amount')}
             <td><select class="cell-select" data-sign="${esc(a.id)}" aria-label="Efecto de ${esc(a.name)}"><option value="1"${(a.sign ?? 1) === 1 ? ' selected' : ''}>Suma</option><option value="-1"${(a.sign ?? 1) === -1 ? ' selected' : ''}>Resta</option></select></td>
-            <td>${roleCell}</td><td><button class="mini-button icon-only" type="button" data-delete="${esc(a.id)}" aria-label="Eliminar ${esc(a.name || 'cuenta')}">${icon('close')}</button></td></tr>`;
-          const prev = g.accounts[i - 1];
-          if ((a.sign ?? 1) === -1 && prev && (prev.sign ?? 1) === 1) html += `<tr class="row-net"><td>${esc(prev.name)} neto</td>${outCells(`net|${a.id}`)}<td colspan="3"></td></tr>`;
+            <td>${roleCell}</td><td><span class="row-actions"><button class="mini-button icon-only move" type="button" data-move="${esc(a.id)}" data-dir="-1" aria-label="Subir ${esc(a.name || 'cuenta')}"${i === 0 ? ' disabled' : ''}>${icon('chevron-up')}</button><button class="mini-button icon-only move" type="button" data-move="${esc(a.id)}" data-dir="1" aria-label="Bajar ${esc(a.name || 'cuenta')}"${i === g.accounts.length - 1 ? ' disabled' : ''}>${icon('chevron-down')}</button><button class="mini-button icon-only" type="button" data-delete="${esc(a.id)}" aria-label="Eliminar ${esc(a.name || 'cuenta')}">${icon('close')}</button></span></td></tr>`;
+          const run = runs.find(r => r.contras[r.contras.length - 1] === a);
+          if (run) html += `<tr class="row-net"><td>${esc(run.asset.name)} neto</td>${outCells(`net|${a.id}`)}<td colspan="3"></td></tr>`;
         });
         html += `<tr class="row-subtotal"><td>Total ${esc(g.name.toLowerCase())}</td>${outCells(`sub|${key}`)}<td colspan="3" data-out="rep|${esc(key)}"></td></tr>${reportedRow(key, 'Según el documento')}`;
       });
@@ -145,6 +146,17 @@
     setPair('itax', Object.fromEntries(SIDES.map(side => [side, usesRate ? s[side]?.taxes ?? null : null])));
     document.querySelectorAll('[data-tax-computed]').forEach(row => { row.hidden = !usesRate; });
     document.querySelectorAll('[data-out]').forEach(cell => { const v = values.get(cell.dataset.out); cell.innerHTML = v ?? ''; });
+    document.querySelectorAll('[data-contra-caption]').forEach(el => {
+      const id = el.dataset.contraCaption, net = balance.rows.find(r => r.type === 'net' && r.contras.includes(id));
+      const ofName = net ? model.balance.find(a => a.id === net.of)?.name : null;
+      el.textContent = net ? `resta a «${ofName || 'la cuenta de arriba'}»` : 'sin cuenta encima a la cual restar';
+      el.classList.toggle('warn', !net);
+    });
+    document.querySelectorAll('.cell-input.over').forEach(el => { el.classList.remove('over'); el.removeAttribute('title'); });
+    balance.issues.filter(x => x.type === 'exceeds').forEach(x => x.sides.forEach(side => x.ids.forEach(id => {
+      const el = document.getElementById(`amount-${id}-${side}`);
+      if (el) { el.classList.add('over'); el.title = x.text; }
+    })));
     renderStats(balance, income);
     renderStatus(balance, income);
   }
@@ -172,9 +184,13 @@
     const chip = (ok, text, iconName = ok ? 'check' : 'info') => chips.push(`<span class="status-chip ${ok ? 'ok' : 'bad'}"><i data-icon="${iconName}"></i>${text}</span>`);
     SIDES.forEach(side => {
       const p = esc(model.periods[side]);
-      if (balance.errors[side]) chip(false, `${p}: ${esc(balance.errors[side])}`);
+      if (balance.errors[side] && !balance.issues.some(x => x.text === balance.errors[side])) chip(false, `${p}: ${esc(balance.errors[side])}`);
       else if (balance.balanced[side] === true) chip(true, `${p}: Activo = Pasivo + Capital`);
       else if (balance.balanced[side] === false) chip(false, `${p}: no cuadra, diferencia ${esc(fmt.money(balance.difference[side], model))}`);
+    });
+    balance.issues.forEach(x => {
+      const action = x.type === 'misplaced' ? ` <button class="mini-button" type="button" data-move-noncurrent="${esc(x.id)}">Mover a activos no circulantes</button>` : '';
+      chip(false, `${esc(x.text)}${action}`);
     });
     const ch = C.checks(model, balance, income);
     const mismatched = ch.items.filter(x => x.note === 'Total del documento vs suma de cuentas' && x.ok === false).length;
@@ -233,6 +249,11 @@
         if (!a.role && hit.role) { a.role = hit.role; changed = true; }
         if ((a.sign ?? 1) !== hit.sign && hit.sign === -1) { a.sign = -1; changed = true; }
       }
+      // «Depreciación…», «Amortización acumulada…»: restan al activo fijo aunque el nombre no esté en el catálogo.
+      if (!hit && a.section === 'asset' && a.term === 'noncurrent' && /deprec|amortiz|agotamiento/.test(a.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase())) {
+        if ((a.sign ?? 1) !== -1) { a.sign = -1; changed = true; }
+        if (!a.role) { a.role = 'fixed'; changed = true; }
+      }
       save(); changed ? renderAll() : update();
     } else if (d.incomeName) {
       const a = findIncome(d.incomeName); a.name = el.value.trim();
@@ -273,6 +294,26 @@
     } else if (d.delete) {
       const a = findBalance(d.delete);
       if (hasData(a)) confirmDelete(a, () => removeBalance(a.id)); else removeBalance(a.id);
+    } else if (d.move) {
+      const a = findBalance(d.move), bi = blockIndex(a), group = groupName(a);
+      const siblings = model.balance.map((x, i) => blockIndex(x) === bi && groupName(x) === group ? i : -1).filter(i => i >= 0);
+      const at = siblings.indexOf(model.balance.indexOf(a)), target = siblings[at + Number(d.dir)];
+      if (target === undefined) return;
+      const from = model.balance.indexOf(a);
+      [model.balance[from], model.balance[target]] = [model.balance[target], model.balance[from]];
+      save(); renderAll();
+      document.querySelector(`[data-move="${CSS.escape(a.id)}"][data-dir="${d.dir}"]:not(:disabled)`)?.focus();
+    } else if (d.moveNoncurrent) {
+      const a = findBalance(d.moveNoncurrent);
+      model.balance.splice(model.balance.indexOf(a), 1);
+      a.term = 'noncurrent'; delete a.group; a.sign = -1; a.role = 'fixed';
+      // Se coloca debajo del último activo fijo para que reste al activo que corrige; se puede subir o bajar.
+      const fixedIdx = model.balance.map((x, i) => blockIndex(x) === 1 && !x.group && (x.sign ?? 1) === 1 && x.role === 'fixed' ? i : -1).filter(i => i >= 0).pop();
+      const lastIdx = model.balance.map((x, i) => blockIndex(x) === 1 && !x.group ? i : -1).filter(i => i >= 0).pop();
+      const at = fixedIdx ?? lastIdx;
+      model.balance.splice(at === undefined ? insertionPoint(1) : at + 1, 0, a);
+      save(); renderAll(`name-${a.id}`);
+      window.Finora.toast(`«${a.name}» se movió a activos no circulantes. Revisa que quede debajo del activo que deprecia.`);
     } else if (d.addIncome) {
       const account = { id: C.store.newId('i'), name: '', category: d.addIncome, sign: 1, amounts: { previous: null, current: null } };
       const lastIndex = model.income.map((a, i) => a.category === d.addIncome ? i : -1).filter(i => i >= 0).pop();
