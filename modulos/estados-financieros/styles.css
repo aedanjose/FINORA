@@ -37,20 +37,20 @@
 .ledger-table .ledger-group-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ledger-table .ledger-group-title .group-input { flex: 1 1 195px; max-width: none; min-width: 0; padding-left: 2px; }
 .ledger-table .ledger-group-label { flex: 1 1 auto; padding: 7px 0; }
-.ledger-table .ledger-count { font-size: 10px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.ledger-table .ledger-count { font-size: 10px; font-weight: 500; color: #56637b; white-space: nowrap; }
 .ledger-table .ledger-fold { display: inline-flex; justify-content: center; align-items: center; flex: 0 0 25px; height: 29px; border-radius: 5px; background: transparent; color: var(--muted); }
 .ledger-table .ledger-fold:hover { background: var(--blue-soft); color: var(--blue); }
 .ledger-table .ledger-fold .icon { width: 16px; height: 16px; transition: transform .18s ease; }
 .ledger-table .ledger-fold[aria-expanded="false"] .icon { transform: rotate(-90deg); }
 .ledger-table .row-group td { padding-top: 8px; padding-bottom: 8px; border-bottom-color: var(--border); }
 .ledger-table .row-group td:not(:first-child) { font-weight: 700; padding-right: 24px; }
-.ledger-table .ledger-group-total .row-subtotal td { padding-top: 11px; padding-bottom: 11px; font-weight: 700; border-top: 1px solid var(--muted); border-bottom: 1px solid var(--border); }
+.ledger-table .ledger-group-total .row-subtotal td { padding-top: 11px; padding-bottom: 11px; font-weight: 700; border-top: 1px solid var(--row-subtotal-line); border-bottom: 1px solid var(--border); }
 .ledger-table .ledger-group-total .row-subtotal td:first-child { padding-left: 27px; }
 .ledger-table .ledger-group-total .row-subtotal td:nth-child(2), .ledger-table .ledger-group-total .row-subtotal td:nth-child(3) { padding-right: 24px; }
 .ledger-table .row-section td { padding: 15px 18px 12px; font-size: 11px; letter-spacing: 1.2px; }
 .ledger-table :is(.row-total,.row-result,.row-final) td { padding-top: 13px; padding-bottom: 13px; }
 .ledger-table :is(.row-total,.row-result,.row-final,.row-net) td:nth-child(2), .ledger-table :is(.row-total,.row-result,.row-final,.row-net) td:nth-child(3) { padding-right: 24px; }
-.ledger-table .row-final td { border-top: 2px solid var(--blue); }
+.ledger-table .row-final td { border-top: 2px solid var(--row-final-line); }
 .ledger-table .row-net td { padding-top: 8px; padding-bottom: 8px; font-size: 12px; }
 .ledger-table .row-add td { padding-top: 5px; padding-bottom: 12px; border-bottom: 0; }
 .ledger-table .row-add .mini-button { font-weight: 500; font-size: 11px; }

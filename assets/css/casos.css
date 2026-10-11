@@ -2,20 +2,41 @@
 :root {
   --surface: #fff;
   --surface-soft: #fafbfd;
-  --row-section: #eef3fc;
-  --row-group: #f7f9fd;
-  --row-total: #f0f5ff;
+  /* Jerarquía de filas: cada tipo tiene un papel distinto (título, grupo, dato, subtotal, total, resultado). */
+  --row-section-ink: #2457c5;
+  --row-section-line: #b9cdf3;
+  --row-group: #f2f5fa;
+  --row-group-accent: #7d9fe0;
+  --row-zebra: #fafbfd;
+  --row-subtotal: transparent;
+  --row-subtotal-line: #7f97c2;
+  --row-total: #dbe7fb;
+  --row-total-ink: #10224a;
+  --row-result: #e8f6f1;
+  --row-result-ink: #0f5b45;
+  --row-final: #cfe0fa;
+  --row-final-line: #2864f0;
   --input-bg: #fff;
   --input-border: #dfe5ef;
-  --negative: #c0392b;
+  --negative: #a8281c;
 }
 @media screen {
   html[data-presentation="on"] {
     --surface: var(--presentation-panel);
     --surface-soft: #1b314e;
-    --row-section: #284a75;
-    --row-group: #1f3958;
-    --row-total: #294e7a;
+    --row-section-ink: #9cc3ff;
+    --row-section-line: #4a6d9e;
+    --row-group: #1f3756;
+    --row-group-accent: #6fa4ff;
+    --row-zebra: rgba(255, 255, 255, .025);
+    --row-subtotal: transparent;
+    --row-subtotal-line: #8eaedb;
+    --row-total: #2e5c96;
+    --row-total-ink: #ffffff;
+    --row-result: #173f45;
+    --row-result-ink: #c4f5e3;
+    --row-final: #33669f;
+    --row-final-line: #a6caff;
     --input-bg: #10213a;
     --input-border: #5f7a9c;
     --negative: #ffadba;
@@ -38,16 +59,18 @@
 .account-table th, .account-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
 .account-table th:first-child, .account-table td:first-child { text-align: left; white-space: normal; min-width: 220px; }
 .account-table thead th { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--surface-soft); text-transform: uppercase; letter-spacing: .4px; position: sticky; top: 0; z-index: 1; }
-.account-table .row-section td { background: var(--row-section); color: var(--ink); font-weight: 700; letter-spacing: .6px; font-size: 11px; }
+.account-table .row-section td { background: transparent; color: var(--row-section-ink); font-weight: 700; letter-spacing: .6px; font-size: 11px; border-bottom: 2px solid var(--row-section-line); padding-top: 18px; }
 .account-table .row-group td { background: var(--row-group); color: var(--ink); font-weight: 600; }
+.account-table .row-group td:first-child { box-shadow: inset 3px 0 0 var(--row-group-accent); }
+.account-table .row-account:nth-child(even of .row-account) td { background: var(--row-zebra); }
 .account-table .row-account td:first-child { padding-left: 28px; }
 .account-table .row-contra td:first-child { padding-left: 40px; color: var(--muted); }
-.account-table .row-net td { color: var(--muted); font-style: italic; }
+.account-table .row-net td { color: var(--muted); font-style: italic; background: transparent; }
 .account-table .row-net td:first-child { padding-left: 40px; }
-.account-table .row-subtotal td { font-weight: 650; border-top: 1px solid var(--muted); }
-.account-table .row-total td { background: var(--row-total); font-weight: 750; color: var(--ink); }
-.account-table .row-result td { font-weight: 700; background: var(--row-group); }
-.account-table .row-final td { background: var(--row-total); font-weight: 800; }
+.account-table .row-subtotal td { font-weight: 650; background: var(--row-subtotal); border-top: 1px solid var(--row-subtotal-line); }
+.account-table .row-total td { background: var(--row-total); font-weight: 750; color: var(--row-total-ink); }
+.account-table .row-result td { font-weight: 700; background: var(--row-result); color: var(--row-result-ink); }
+.account-table .row-final td { background: var(--row-final); font-weight: 800; color: var(--row-total-ink); border-top: 2px solid var(--row-final-line); }
 .account-table .row-reported td { font-size: 11px; color: var(--muted); }
 .account-table .num-negative { color: var(--negative); }
 .account-table .muted { color: var(--muted); }
@@ -88,7 +111,10 @@
   html[data-presentation="on"] .account-table { font-size: 15px; }
   html[data-presentation="on"] .account-table thead th { font-size: 12px; color: #e3edfc; background: #203b5e; }
   html[data-presentation="on"] .account-table th, html[data-presentation="on"] .account-table td { padding-top: 12px; padding-bottom: 12px; color: #e0ebfb; }
-  html[data-presentation="on"] .account-table :is(.row-section, .row-group, .row-total, .row-result, .row-final) td { color: #fff; }
+  html[data-presentation="on"] .account-table :is(.row-group, .row-subtotal) td { color: #f1f6ff; }
+  html[data-presentation="on"] .account-table .row-section td { color: var(--row-section-ink); }
+  html[data-presentation="on"] .account-table :is(.row-total, .row-final) td { color: var(--row-total-ink); }
+  html[data-presentation="on"] .account-table .row-result td { color: var(--row-result-ink); }
   html[data-presentation="on"] .account-table :is(.row-net, .row-contra, .row-reported) td, html[data-presentation="on"] .account-table :is(.muted, .vertical) { color: #c2d6f0; }
   html[data-presentation="on"] .account-table .num-negative { color: var(--negative); }
   html[data-presentation="on"] :is(.cell-input, .cell-select) { font-size: 15px; }
