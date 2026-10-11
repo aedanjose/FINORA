@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Prototipo visual del módulo de análisis financiero de Finora.">
+  <title>Análisis financiero · Finora</title>
+  <script src="../../assets/js/presentation.js"></script>
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="../../assets/css/motion.css">
+  <link rel="stylesheet" href="../../assets/css/presentation.css">
+  <script defer src="../../assets/js/app.js"></script>
+  <script defer src="./script.js"></script>
+  <script defer src="../../assets/js/motion.js"></script>
+</head>
+<body data-page="analisis-financiero" data-base="../../">
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="sidebar-overlay" data-close-menu></div>
+  <aside class="sidebar" id="sidebar" aria-label="Navegación principal"></aside>
+  <div class="workspace">
+    <header class="topbar" id="topbar"></header>
+    <main class="main-content" id="main">
+      <div class="page-heading">
+        <div><p class="eyebrow">ENTIENDE TUS RESULTADOS</p><h1 class="page-title">Análisis financiero</h1><p class="page-description">Convierte tus estados financieros en una perspectiva clara de tu negocio.</p></div>
+        <div class="heading-actions"><button class="button button-secondary" id="analysis-report"><i data-icon="download"></i>Vista del informe</button></div>
+      </div>
+      <div class="analysis-context"><span class="demo-label">Datos de ejemplo</span><span><i data-icon="calendar"></i> Enero – diciembre 2025</span><span class="context-separator">/</span><span>Comparativo con 2024</span><span class="currency-caption">Valores en C$</span></div>
+      <section class="stats-grid" aria-label="Indicadores destacados">
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Ingresos totales</span><span class="mini-icon"><i data-icon="chart"></i></span></div><p class="stat-value">C$245,000</p><p class="stat-caption"><span class="trend trend-positive"><i data-icon="arrow-up-right"></i>12.4%</span> frente a 2024</p></article>
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Utilidad neta</span><span class="mini-icon"><i data-icon="wallet"></i></span></div><p class="stat-value">C$31,430</p><p class="stat-caption"><span class="trend trend-positive"><i data-icon="arrow-up-right"></i>27.6%</span> frente a 2024</p></article>
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Margen neto</span><span class="mini-icon"><i data-icon="trend"></i></span></div><p class="stat-value">12.8<span class="value-suffix">%</span></p><p class="stat-caption"><span class="trend trend-positive">+1.5 pp</span> frente a 2024</p></article>
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Rendimiento del patrimonio</span><span class="mini-icon"><i data-icon="scale"></i></span></div><p class="stat-value">19.6<span class="value-suffix">%</span></p><p class="stat-caption">ROE · cierre del período</p></article>
+      </section>
+      <div class="analysis-tabs" role="tablist" aria-label="Tipos de análisis">
+        <button class="tab-button" id="tab-horizontal" type="button" role="tab" aria-selected="true" aria-controls="panel-horizontal" data-analysis-tab="horizontal">Análisis horizontal</button>
+        <button class="tab-button" id="tab-vertical" type="button" role="tab" aria-selected="false" aria-controls="panel-vertical" tabindex="-1" data-analysis-tab="vertical">Análisis vertical</button>
+        <button class="tab-button" id="tab-razones" type="button" role="tab" aria-selected="false" aria-controls="panel-razones" tabindex="-1" data-analysis-tab="razones">Razones financieras</button>
+        <button class="tab-button" id="tab-dupont" type="button" role="tab" aria-selected="false" aria-controls="panel-dupont" tabindex="-1" data-analysis-tab="dupont">Modelo DuPont</button>
+      </div>
+      <section id="panel-horizontal" role="tabpanel" aria-labelledby="tab-horizontal">
+        <div class="two-column analysis-layout">
+          <article class="panel"><div class="panel-header"><div><h2 class="panel-title">Evolución de resultados</h2><p class="panel-subtitle">La variación de cada cuenta entre dos períodos.</p></div><span class="badge badge-blue">2024 → 2025</span></div>
+            <div class="table-wrap"><table class="data-table financial-table"><thead><tr><th scope="col">Concepto</th><th scope="col" class="table-number">2024</th><th scope="col" class="table-number">2025</th><th scope="col" class="table-number">Variación</th></tr></thead><tbody>
+              <tr><td><span class="cell-main">Ingresos por ventas</span></td><td class="table-number">C$218,000</td><td class="table-number">C$245,000</td><td class="table-number"><span class="variation-positive">+12.4%</span></td></tr>
+              <tr><td>Costo de ventas</td><td class="table-number">C$130,800</td><td class="table-number">C$142,100</td><td class="table-number">+8.6%</td></tr>
+              <tr class="subtotal-row"><td>Utilidad bruta</td><td class="table-number">C$87,200</td><td class="table-number">C$102,900</td><td class="table-number"><span class="variation-positive">+18.0%</span></td></tr>
+              <tr><td>Gastos operativos</td><td class="table-number">C$46,000</td><td class="table-number">C$51,500</td><td class="table-number">+12.0%</td></tr>
+              <tr class="subtotal-row"><td>Utilidad operativa</td><td class="table-number">C$41,200</td><td class="table-number">C$51,400</td><td class="table-number"><span class="variation-positive">+24.8%</span></td></tr>
+              <tr><td>Gastos financieros</td><td class="table-number">C$6,000</td><td class="table-number">C$6,500</td><td class="table-number">+8.3%</td></tr>
+              <tr><td>Impuesto sobre la renta</td><td class="table-number">C$10,560</td><td class="table-number">C$13,470</td><td class="table-number">+27.6%</td></tr>
+              <tr class="total-row"><td>Utilidad neta</td><td class="table-number">C$24,640</td><td class="table-number">C$31,430</td><td class="table-number">+27.6%</td></tr>
+            </tbody></table></div><div class="table-footnote">Variación = (valor actual − valor anterior) / valor anterior × 100.</div>
+          </article>
+          <aside class="panel insight-panel"><div class="panel-header"><div><p class="eyebrow">LECTURA DEL PERÍODO</p><h2 class="panel-title">Crecer con rentabilidad</h2></div></div><div class="panel-body"><div class="insight-number">+C$6,790</div><p class="insight-lead">de utilidad neta respecto al período anterior.</p><div class="comparison-bars"><div class="comparison-label"><span>2024</span><strong>C$24,640</strong></div><div class="comparison-track"><span style="width:78.4%"></span></div><div class="comparison-label"><span>2025</span><strong>C$31,430</strong></div><div class="comparison-track current"><span style="width:100%"></span></div></div><div class="insight-point"><span class="mini-icon"><i data-icon="trend"></i></span><div><strong>Los ingresos crecen más que los costos</strong><p>Las ventas aumentan 12.4% y el costo de ventas 8.6%.</p></div></div><button class="button button-ghost insight-detail" data-detail="horizontal">Cómo leer este análisis<i data-icon="arrow-right"></i></button></div></aside>
+        </div>
+      </section>
+      <section id="panel-vertical" role="tabpanel" aria-labelledby="tab-vertical" hidden>
+        <div class="two-column analysis-layout"><article class="panel"><div class="panel-header"><div><h2 class="panel-title">Estructura de los ingresos</h2><p class="panel-subtitle">Participación de cada cuenta sobre las ventas de 2025.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Concepto</th><th scope="col" class="table-number">Monto</th><th scope="col" class="table-number">% de ventas</th><th scope="col">Participación</th></tr></thead><tbody><tr><td class="cell-main">Ingresos por ventas</td><td class="table-number">C$245,000</td><td class="table-number">100.0%</td><td><div class="progress-track"><span class="progress-bar" style="width:100%"></span></div></td></tr><tr><td>Costo de ventas</td><td class="table-number">C$142,100</td><td class="table-number">58.0%</td><td><div class="progress-track"><span class="progress-bar" style="width:58%"></span></div></td></tr><tr><td>Gastos operativos</td><td class="table-number">C$51,500</td><td class="table-number">21.0%</td><td><div class="progress-track"><span class="progress-bar" style="width:21%"></span></div></td></tr><tr><td>Gastos financieros</td><td class="table-number">C$6,500</td><td class="table-number">2.7%</td><td><div class="progress-track"><span class="progress-bar" style="width:2.7%"></span></div></td></tr><tr><td>Impuestos</td><td class="table-number">C$13,470</td><td class="table-number">5.5%</td><td><div class="progress-track"><span class="progress-bar" style="width:5.5%"></span></div></td></tr><tr class="total-row"><td>Utilidad neta</td><td class="table-number">C$31,430</td><td class="table-number">12.8%</td><td><div class="progress-track"><span class="progress-bar" style="width:12.8%"></span></div></td></tr></tbody></table></div><div class="table-footnote">Base del análisis: ingresos por ventas = 100%.</div></article><aside class="panel"><div class="panel-header"><div><h2 class="panel-title">Cada C$100 vendidos</h2><p class="panel-subtitle">Así se distribuyen en este ejemplo.</p></div></div><div class="panel-body"><div class="vertical-donut" role="img" aria-label="58% costo de ventas, 21% gastos operativos, 2.7% gastos financieros, 5.5% impuestos y 12.8% utilidad neta"><div><strong>C$12.8</strong><span>de utilidad</span></div></div><ul class="chart-key"><li><span class="key-dot cost"></span>Costo de ventas<strong>C$58.0</strong></li><li><span class="key-dot operating"></span>Gastos operativos<strong>C$21.0</strong></li><li><span class="key-dot other"></span>Financieros e impuestos<strong>C$8.2</strong></li><li><span class="key-dot profit"></span>Utilidad neta<strong>C$12.8</strong></li></ul></div></aside></div>
+      </section>
+      <section id="panel-razones" role="tabpanel" aria-labelledby="tab-razones" hidden>
+        <div class="ratio-grid"><article class="panel ratio-card"><div class="ratio-heading"><span class="mini-icon"><i data-icon="wallet"></i></span><span>Liquidez</span></div><h2>1.85<span> veces</span></h2><h3>Razón corriente</h3><p>Activos corrientes / pasivos corrientes</p><div class="ratio-values"><span>C$111,000 / C$60,000</span><button class="button button-ghost button-small" data-detail="liquidez">Ver detalle<i data-icon="arrow-right"></i></button></div></article><article class="panel ratio-card"><div class="ratio-heading"><span class="mini-icon"><i data-icon="scale"></i></span><span>Endeudamiento</span></div><h2>46.7<span>%</span></h2><h3>Razón de deuda</h3><p>Pasivo total / activo total</p><div class="ratio-values"><span>C$140,000 / C$300,000</span><button class="button button-ghost button-small" data-detail="deuda">Ver detalle<i data-icon="arrow-right"></i></button></div></article><article class="panel ratio-card"><div class="ratio-heading"><span class="mini-icon"><i data-icon="trend"></i></span><span>Rentabilidad</span></div><h2>10.5<span>%</span></h2><h3>Rendimiento del activo</h3><p>Utilidad neta / activo total al cierre</p><div class="ratio-values"><span>C$31,430 / C$300,000</span><button class="button button-ghost button-small" data-detail="roa">Ver detalle<i data-icon="arrow-right"></i></button></div></article><article class="panel ratio-card"><div class="ratio-heading"><span class="mini-icon"><i data-icon="box"></i></span><span>Actividad</span></div><h2>0.82<span> veces</span></h2><h3>Rotación de activos</h3><p>Ventas / activo total al cierre</p><div class="ratio-values"><span>C$245,000 / C$300,000</span><button class="button button-ghost button-small" data-detail="rotacion">Ver detalle<i data-icon="arrow-right"></i></button></div></article></div><p class="note"><i data-icon="info"></i>Estos indicadores usan saldos de cierre ilustrativos. Su interpretación depende del sector y del contexto de la empresa.</p>
+      </section>
+      <section id="panel-dupont" role="tabpanel" aria-labelledby="tab-dupont" hidden>
+        <article class="panel"><div class="panel-header"><div><h2 class="panel-title">Los tres motores del ROE</h2><p class="panel-subtitle">Una mirada conjunta a rentabilidad, eficiencia y estructura de capital.</p></div><button class="button button-secondary button-small" data-detail="dupont"><i data-icon="info"></i>Ver fórmula</button></div><div class="panel-body"><div class="dupont-flow"><div class="dupont-factor"><span>Margen neto</span><strong>12.83%</strong><small>Utilidad neta / ventas</small></div><span class="math-symbol" aria-hidden="true">×</span><div class="dupont-factor"><span>Rotación de activos</span><strong>0.817</strong><small>Ventas / activos</small></div><span class="math-symbol" aria-hidden="true">×</span><div class="dupont-factor"><span>Multiplicador de capital</span><strong>1.875</strong><small>Activos / patrimonio</small></div><span class="math-symbol" aria-hidden="true">=</span><div class="dupont-result"><span>ROE</span><strong>19.64%</strong><small>Rendimiento del patrimonio</small></div></div><div class="dupont-explanation"><i data-icon="layers"></i><p>En este ejemplo, cada <strong>C$100 de patrimonio</strong> genera aproximadamente <strong>C$19.64 de utilidad neta</strong> durante el período. Se utilizan activos de C$300,000 y patrimonio de C$160,000 al cierre.</p></div></div></article>
+      </section>
+    </main>
+    <footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Prototipo de diseño · Datos de ejemplo</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>

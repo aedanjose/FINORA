@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101d3b">
+  <meta name="description" content="Bienvenido a Finora. Finanzas con orden y rumbo. Un espacio para entender, organizar y planear tus finanzas.">
+  <title>Bienvenido a Finora</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
+</head>
+<body class="is-playing">
+  <header class="intro-header">
+    <a class="brand" href="../estados-financieros/index.html" data-enter aria-label="Finora, entrar al sistema">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h14M5 12h10" stroke="white" stroke-width="2.8" stroke-linecap="round"/><path d="m14 19 5-5" stroke="#94bcff" stroke-width="2.8" stroke-linecap="round"/></svg></span>
+      <span>finora<span class="brand-dot">.</span></span>
+    </a>
+    <a class="skip-intro" href="../estados-financieros/index.html" data-enter>Omitir intro<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></a>
+  </header>
+
+  <main class="intro-main">
+    <div class="board-scene" role="img" aria-label="Una pizarra se despliega con gráficos de ingresos, gastos y un balance general ilustrativo.">
+      <div class="scene-glow" aria-hidden="true"></div>
+      <div class="board-mount" aria-hidden="true"><span></span><span></span></div>
+      <div class="board-rail" aria-hidden="true"></div>
+      <div class="whiteboard" aria-hidden="true">
+        <div class="board-topline"><div><span class="board-logo">f<span>↗</span></span><span>TUS FINANZAS, EN PERSPECTIVA</span></div><span class="sample-tag"><i></i>CASO ILUSTRATIVO</span></div>
+        <div class="board-content">
+          <div class="chart-card">
+            <div class="chart-heading"><div><span class="mini-label">Ingresos del período</span><strong><small>C$</small> 32,480<span>.00</span></strong></div><span class="growth-badge">↗ 12.6%</span></div>
+            <div class="chart-legend"><span><i class="blue-dot"></i>Ingresos</span><span><i class="pale-dot"></i>Gastos</span></div>
+            <div class="chart-canvas">
+              <div class="grid-line grid-line-1"></div><div class="grid-line grid-line-2"></div><div class="grid-line grid-line-3"></div>
+              <div class="bars">
+                <div class="bar-pair"><span class="bar income" style="--height:46%;--delay:.85s"></span><span class="bar expense" style="--height:32%;--delay:.95s"></span></div>
+                <div class="bar-pair"><span class="bar income" style="--height:62%;--delay:.95s"></span><span class="bar expense" style="--height:42%;--delay:1.05s"></span></div>
+                <div class="bar-pair"><span class="bar income" style="--height:55%;--delay:1.05s"></span><span class="bar expense" style="--height:36%;--delay:1.15s"></span></div>
+                <div class="bar-pair"><span class="bar income" style="--height:77%;--delay:1.15s"></span><span class="bar expense" style="--height:47%;--delay:1.25s"></span></div>
+                <div class="bar-pair"><span class="bar income" style="--height:69%;--delay:1.25s"></span><span class="bar expense" style="--height:43%;--delay:1.35s"></span></div>
+                <div class="bar-pair"><span class="bar income" style="--height:92%;--delay:1.35s"></span><span class="bar expense" style="--height:51%;--delay:1.45s"></span></div>
+              </div>
+              <svg class="trend-line" viewBox="0 0 380 130" preserveAspectRatio="none" fill="none"><path class="line-glow" d="M14 104C42 103 47 77 76 79S113 96 140 78 176 53 205 54 242 65 267 42 310 47 366 12"/><path class="line-stroke" pathLength="1" d="M14 104C42 103 47 77 76 79S113 96 140 78 176 53 205 54 242 65 267 42 310 47 366 12"/><circle class="line-point" cx="366" cy="12" r="4"/></svg>
+            </div>
+            <div class="chart-months"><span>Ene</span><span>Feb</span><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span></div>
+          </div>
+          <div class="balance-card">
+            <div class="balance-heading"><div><span class="mini-label">Una base para decidir</span><h2>Balance general</h2></div><svg viewBox="0 0 24 24" fill="none"><path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h6"/></svg></div>
+            <div class="balance-row" style="--delay:1.15s"><span><i class="row-dot assets-dot"></i>Activos</span><strong>C$ 124,850.40</strong></div>
+            <div class="balance-row" style="--delay:1.4s"><span><i class="row-dot liabilities-dot"></i>Pasivos</span><strong>C$ 24,850.40</strong></div>
+            <div class="balance-row equity-row" style="--delay:1.65s"><span><i class="row-dot equity-dot"></i>Patrimonio</span><strong>C$ 100,000.00</strong></div>
+            <div class="balance-equation"><span class="equation-check"><svg viewBox="0 0 24 24" fill="none"><path d="m6 12 4 4 8-8"/></svg></span><span>Activo = Pasivo + Patrimonio</span></div>
+            <div class="balance-meter"><span class="meter-equity"></span><span class="meter-liabilities"></span></div>
+          </div>
+        </div>
+        <div class="board-bottomline"><span><i></i>De los números a las decisiones</span><span>FINORA / 01</span></div>
+      </div>
+      <div class="board-ledge" aria-hidden="true"><span class="marker marker-blue"></span><span class="marker marker-navy"></span><span class="eraser"></span></div>
+      <div class="floating-note note-left" aria-hidden="true"><span class="note-icon">↗</span><div><small>Una visión más clara</small><strong>Mejores decisiones</strong></div></div>
+      <div class="floating-note note-right" aria-hidden="true"><span class="note-check">✓</span><span>Todo empieza con orden.</span></div>
+    </div>
+
+    <section class="welcome" aria-labelledby="welcome-title">
+      <p class="welcome-eyebrow"><span></span>FINANZAS CON ORDEN Y RUMBO<span></span></p>
+      <h1 id="welcome-title">Bienvenido a <span>Finora<span class="title-dot">.</span></span></h1>
+      <p class="welcome-description">Entiende tus números. Visualiza tus metas.<br class="mobile-break"> Dale dirección a tus finanzas.</p>
+      <div class="welcome-actions"><a class="enter-button" href="../estados-financieros/index.html" data-enter>Entrar a Finora<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></a><button class="replay-button" id="replay-intro" type="button" hidden><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg><span>Repetir</span></button></div>
+      <p class="reduced-motion-note" id="motion-note" hidden>Vista sin movimiento, según la preferencia de tu dispositivo.</p>
+    </section>
+  </main>
+  <footer class="intro-footer"><span>CLARIDAD PARA DECIDIR</span><span>Sistema de Análisis y Planeación Financiera</span></footer>
+</body>
+</html>

@@ -1,0 +1,66 @@
+/* FINORA · Movimiento compartido. Las cifras y el contenido permanecen intactos. */
+/* El contenido siempre es visible sin JavaScript y con movimiento reducido. */
+.topbar .breadcrumb { min-width: 0; }
+.topbar-actions { flex-shrink: 0; }
+.motion-replay { color: #6483b8; }
+.motion-replay .icon { width: 17px; height: 17px; }
+.finora-bar-vertical { transform-box: fill-box; transform-origin: center bottom; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .stat-card, .ratio-card, .leverage-card {
+    transition: border-color .22s ease, box-shadow .22s ease, translate .22s ease;
+  }
+  .button, .icon-button, .tab-button, .scenario-button, .report-type {
+    transition: background-color .18s ease, color .18s ease, box-shadow .18s ease, border-color .18s ease, translate .18s ease;
+  }
+  .nav-item .icon, .next-step-links a > .icon {
+    transition: translate .2s ease, color .2s ease;
+  }
+  .progress-bar, .sensitivity-bar, .comparison-track > span, .budget-bar {
+    transition: width .55s cubic-bezier(.22, 1, .36, 1), background-color .25s ease;
+  }
+  .data-table tbody td, .statement-table tbody td {
+    transition: background-color .16s ease;
+  }
+  .detail-dialog[open] {
+    animation: finora-dialog-in .28s cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .detail-dialog[open]::backdrop {
+    animation: finora-backdrop-in .2s ease both;
+  }
+  .analysis-tabs .tab-button[aria-selected="true"]::after {
+    transform-origin: left center;
+    animation: finora-tab-line .3s cubic-bezier(.22, 1, .36, 1) both;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .stat-card:hover, .ratio-card:hover, .leverage-card:hover {
+    translate: 0 -3px;
+    border-color: #cddbf3;
+    box-shadow: 0 9px 25px #142d5710;
+  }
+  .stat-card.dark:hover, .total-leverage:hover { border-color: #415b87; }
+  .button-primary:hover { translate: 0 -1px; box-shadow: 0 5px 12px #2864f022; }
+  .nav-item:hover .icon { translate: 2px 0; }
+  .next-step-links a:hover > .icon { translate: 3px 0; }
+  .motion-replay:hover { background: #edf3ff; color: #2864f0; }
+}
+@keyframes finora-dialog-in {
+  from { opacity: .3; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes finora-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes finora-tab-line { from { transform: scaleX(.25); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .motion-replay { display: none; }
+  .stat-card, .ratio-card, .leverage-card, .button { translate: none !important; }
+  .detail-dialog[open], .detail-dialog[open]::backdrop { animation: none !important; }
+}
+@media print {
+  .motion-replay { display: none !important; }
+  .stat-card, .panel, .report-preview, .report-paper, [role="tabpanel"] {
+    animation: none !important;
+    translate: none !important;
+    box-shadow: none !important;
+  }
+}

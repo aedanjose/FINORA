@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Prototipo del módulo de apalancamiento operativo y financiero de Finora.">
+  <title>Apalancamiento · Finora</title>
+  <script src="../../assets/js/presentation.js"></script>
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="../../assets/css/motion.css">
+  <link rel="stylesheet" href="../../assets/css/presentation.css">
+  <script defer src="../../assets/js/app.js"></script>
+  <script defer src="./script.js"></script>
+  <script defer src="../../assets/js/motion.js"></script>
+</head>
+<body data-page="apalancamiento" data-base="../../">
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="sidebar-overlay" data-close-menu></div>
+  <aside class="sidebar" id="sidebar" aria-label="Navegación principal"></aside>
+  <div class="workspace">
+    <header class="topbar" id="topbar"></header>
+    <main class="main-content" id="main">
+      <div class="page-heading"><div><p class="eyebrow">ESTRUCTURA Y SENSIBILIDAD</p><h1 class="page-title">Apalancamiento</h1><p class="page-description">Explora cómo un cambio en ventas se refleja en los resultados.</p></div><div class="heading-actions"><button class="button button-secondary" id="leverage-guide"><i data-icon="help"></i>Guía de lectura</button></div></div>
+      <div class="example-context"><span class="demo-label">Ejemplo ilustrativo</span><span>Escenario mensual de muestra</span><span class="currency-caption">Moneda: C$</span></div>
+      <section class="leverage-cards" aria-label="Grados de apalancamiento del escenario base">
+        <article class="panel leverage-card"><div class="leverage-card-top"><span class="leverage-code">GAO</span><span class="mini-icon"><i data-icon="box"></i></span></div><h2>Apalancamiento operativo</h2><div class="leverage-value">2.40<span> veces</span></div><p>Por cada 1% de cambio en ventas, la utilidad operativa cambia 2.4%.</p><div class="leverage-formula"><span>Contribución / utilidad operativa</span><strong>C$120,000 / C$50,000</strong></div><button class="button button-ghost button-small" data-leverage-detail="gao">Ver cálculo<i data-icon="arrow-right"></i></button></article>
+        <article class="panel leverage-card"><div class="leverage-card-top"><span class="leverage-code">GAF</span><span class="mini-icon purple-icon"><i data-icon="bank"></i></span></div><h2>Apalancamiento financiero</h2><div class="leverage-value">1.25<span> veces</span></div><p>Por cada 1% de cambio en la utilidad operativa, la utilidad antes de impuestos cambia 1.25%.</p><div class="leverage-formula"><span>Utilidad operativa / utilidad antes de impuestos</span><strong>C$50,000 / C$40,000</strong></div><button class="button button-ghost button-small" data-leverage-detail="gaf">Ver cálculo<i data-icon="arrow-right"></i></button></article>
+        <article class="panel leverage-card total-leverage"><div class="leverage-card-top"><span class="leverage-code">GAT</span><span class="mini-icon"><i data-icon="layers"></i></span></div><h2>Apalancamiento total</h2><div class="leverage-value">3.00<span> veces</span></div><p>Por cada 1% de cambio en ventas, la utilidad antes de impuestos cambia 3%.</p><div class="leverage-formula"><span>Apalancamiento operativo × financiero</span><strong>2.40 × 1.25</strong></div><button class="button button-ghost button-small" data-leverage-detail="gat">Ver cálculo<i data-icon="arrow-right"></i></button></article>
+      </section>
+      <div class="two-column leverage-layout">
+        <article class="panel sensitivity-panel"><div class="panel-header"><div><h2 class="panel-title">Un cambio, tres efectos</h2><p class="panel-subtitle">Compara escenarios predefinidos frente al caso base.</p></div><span class="badge badge-blue">Vista ilustrativa</span></div><div class="panel-body"><div class="scenario-controls"><span>Variación en ventas</span><div class="segmented-control" role="group" aria-label="Escenario ilustrativo"><button class="scenario-button" type="button" data-scenario="lower" aria-pressed="false">−10%</button><button class="scenario-button" type="button" data-scenario="base" aria-pressed="true">Base</button><button class="scenario-button" type="button" data-scenario="higher" aria-pressed="false">+10%</button></div></div><div class="sensitivity-chart" aria-label="Variaciones del escenario seleccionado"><div class="sensitivity-row"><div class="sensitivity-label"><span>Ventas</span><strong id="sales-change">0%</strong></div><div class="sensitivity-track"><span class="sensitivity-bar sales-bar" id="sales-bar" style="width:0%"></span></div></div><div class="sensitivity-row"><div class="sensitivity-label"><span>Utilidad operativa</span><strong id="operating-change">0%</strong></div><div class="sensitivity-track"><span class="sensitivity-bar operating-bar" id="operating-bar" style="width:0%"></span></div></div><div class="sensitivity-row"><div class="sensitivity-label"><span>Utilidad antes de impuestos</span><strong id="pretax-change">0%</strong></div><div class="sensitivity-track"><span class="sensitivity-bar pretax-bar" id="pretax-bar" style="width:0%"></span></div></div></div><div class="scenario-result" aria-live="polite" aria-atomic="true"><span class="mini-icon"><i data-icon="trend"></i></span><p id="scenario-description">El caso base parte de ventas de <strong>C$300,000</strong>, utilidad operativa de <strong>C$50,000</strong> y utilidad antes de impuestos de <strong>C$40,000</strong>.</p></div><p class="scenario-assumption">Las barras muestran la magnitud de la variación. Costos fijos, tasa de costo variable e intereses constantes.</p></div></article>
+        <aside class="panel breakdown-panel"><div class="panel-header"><div><h2 class="panel-title">Detrás de los indicadores</h2><p class="panel-subtitle">Estructura del caso base.</p></div></div><div class="panel-body"><dl class="leverage-breakdown"><div><dt>Ingresos por ventas</dt><dd>C$300,000</dd></div><div><dt>Costos variables <span>60% de ventas</span></dt><dd>− C$180,000</dd></div><div class="breakdown-subtotal"><dt>Margen de contribución</dt><dd>C$120,000</dd></div><div><dt>Costos fijos operativos</dt><dd>− C$70,000</dd></div><div class="breakdown-subtotal"><dt>Utilidad operativa <span>UAII</span></dt><dd>C$50,000</dd></div><div><dt>Intereses</dt><dd>− C$10,000</dd></div><div class="breakdown-total"><dt>Utilidad antes de impuestos</dt><dd>C$40,000</dd></div></dl></div></aside>
+      </div>
+      <section class="leverage-insight"><span class="insight-symbol"><i data-icon="info"></i></span><div><h2>La sensibilidad funciona en ambas direcciones</h2><p>En este ejemplo, una caída del 10% en ventas reduce un 30% la utilidad antes de impuestos. La estructura de costos amplifica tanto los aumentos como las disminuciones.</p></div><button class="button button-ghost" id="show-lower-scenario">Ver escenario −10%<i data-icon="arrow-right"></i></button></section>
+    </main>
+    <footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Prototipo de diseño · Datos de ejemplo</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>

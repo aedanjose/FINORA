@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Diseño del módulo de punto de equilibrio de Finora.">
+  <title>Punto de equilibrio · Finora</title>
+  <script src="../../assets/js/presentation.js"></script>
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="../../assets/css/motion.css">
+  <link rel="stylesheet" href="../../assets/css/presentation.css">
+  <script defer src="../../assets/js/app.js"></script>
+  <script defer src="./script.js"></script>
+  <script defer src="../../assets/js/motion.js"></script>
+</head>
+<body data-page="punto-equilibrio" data-base="../../">
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="sidebar-overlay" data-close-menu></div>
+  <aside class="sidebar" id="sidebar" aria-label="Navegación principal"></aside>
+  <div class="workspace">
+    <header class="topbar" id="topbar"></header>
+    <main class="main-content" id="main">
+      <div class="page-heading"><div><p class="eyebrow">PLANEACIÓN FINANCIERA</p><h1 class="page-title">Punto de equilibrio</h1><p class="page-description">Identifica cuánto necesitas vender para cubrir tus costos.</p></div><div class="heading-actions"><button class="button button-secondary" id="show-break-even-formula"><i data-icon="info"></i>Cómo se calcula</button></div></div>
+      <div class="example-context"><span class="demo-label">Ejemplo ilustrativo</span><span>Producto único · Proyección mensual</span><span class="currency-caption">Moneda: C$</span></div>
+      <section class="stats-grid" aria-label="Resultados del ejemplo">
+        <article class="stat-card dark"><div class="stat-topline"><span class="stat-label">Punto de equilibrio</span><span class="mini-icon"><i data-icon="scale"></i></span></div><p class="stat-value">2,500<span class="unit-label"> uds.</span></p><p class="stat-caption">Ventas mínimas para cubrir los costos</p></article>
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Ventas de equilibrio</span><span class="mini-icon"><i data-icon="wallet"></i></span></div><p class="stat-value">C$200,000</p><p class="stat-caption">2,500 unidades × C$80</p></article>
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Contribución unitaria</span><span class="mini-icon"><i data-icon="box"></i></span></div><p class="stat-value">C$32<span class="unit-label"> / ud.</span></p><p class="stat-caption">40% del precio de venta</p></article>
+        <article class="stat-card"><div class="stat-topline"><span class="stat-label">Margen de seguridad</span><span class="mini-icon"><i data-icon="trend"></i></span></div><p class="stat-value">28.6<span class="unit-label">%</span></p><p class="stat-caption">Sobre ventas previstas de 3,500 uds.</p></article>
+      </section>
+      <div class="two-column equilibrium-layout">
+        <article class="panel equilibrium-chart-panel"><div class="panel-header"><div><h2 class="panel-title">El momento en que todo se equilibra</h2><p class="panel-subtitle">Relación entre volumen de ventas, ingresos y costos.</p></div></div><div class="chart-legend"><span><b class="legend-line income"></b>Ingresos</span><span><b class="legend-line total-cost"></b>Costos totales</span><span><b class="legend-line fixed-cost"></b>Costos fijos</span></div>
+          <div class="equilibrium-chart"><svg viewBox="0 0 710 385" role="img" aria-labelledby="be-chart-title be-chart-desc"><title id="be-chart-title">Punto de equilibrio en 2,500 unidades</title><desc id="be-chart-desc">Los ingresos y los costos totales coinciden en C$200,000 al vender 2,500 unidades. Por encima de ese volumen, el ejemplo genera utilidad operativa.</desc><defs><linearGradient id="profit-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#16846b" stop-opacity=".13"/><stop offset="100%" stop-color="#16846b" stop-opacity=".02"/></linearGradient></defs>
+            <g class="chart-grid"><line x1="80" y1="40" x2="630" y2="40"/><line x1="80" y1="105" x2="630" y2="105"/><line x1="80" y1="170" x2="630" y2="170"/><line x1="80" y1="235" x2="630" y2="235"/><line x1="80" y1="300" x2="630" y2="300"/></g>
+            <g class="axis-labels"><text x="62" y="44" text-anchor="end">400 mil</text><text x="62" y="109" text-anchor="end">300 mil</text><text x="62" y="174" text-anchor="end">200 mil</text><text x="62" y="239" text-anchor="end">100 mil</text><text x="62" y="304" text-anchor="end">0</text><text x="80" y="325" text-anchor="middle">0</text><text x="190" y="325" text-anchor="middle">1,000</text><text x="300" y="325" text-anchor="middle">2,000</text><text x="410" y="325" text-anchor="middle">3,000</text><text x="520" y="325" text-anchor="middle">4,000</text><text x="630" y="325" text-anchor="middle">5,000</text><text x="355" y="365" text-anchor="middle">Unidades vendidas</text><text x="80" y="19">Importe (C$)</text></g>
+            <path d="M355 170 L630 40 L630 92 Z" fill="url(#profit-area)"/><path d="M80 248 L355 170 L80 300 Z" fill="#F5F1EA" opacity=".8"/>
+            <line x1="80" y1="248" x2="630" y2="248" stroke="#A7B1C4" stroke-width="2" stroke-dasharray="5 5"/><line x1="80" y1="248" x2="630" y2="92" stroke="#E1A55B" stroke-width="2.7" stroke-linecap="round"/><line x1="80" y1="300" x2="630" y2="40" stroke="#2864F0" stroke-width="3" stroke-linecap="round"/>
+            <line x1="355" y1="170" x2="355" y2="300" stroke="#2864F0" stroke-width="1.5" stroke-dasharray="4 5"/><circle cx="355" cy="170" r="10" fill="#2864F0" opacity=".12"/><circle cx="355" cy="170" r="5" fill="#2864F0" stroke="#fff" stroke-width="2"/>
+            <g class="equilibrium-callout"><rect x="279" y="96" width="152" height="53" rx="8" fill="#101D3B"/><path d="M350 149 L355 155 L360 149" fill="#101D3B"/><text x="355" y="117" text-anchor="middle" fill="#bfcde6" font-size="10">PUNTO DE EQUILIBRIO</text><text x="355" y="136" text-anchor="middle" fill="white" font-size="13" font-weight="650">2,500 uds. · C$200 mil</text></g>
+            <text x="96" y="254" fill="#A7865F" font-size="10">Zona de pérdida</text><text x="622" y="91" text-anchor="end" fill="#16846B" font-size="10">Zona de utilidad</text>
+          </svg></div><div class="chart-bottom-note"><i data-icon="info"></i><span>El cruce representa el nivel de ventas donde la utilidad operativa es cero.</span></div>
+        </article>
+        <aside class="panel assumptions-panel"><div class="panel-header"><div><h2 class="panel-title">Supuestos del ejemplo</h2><p class="panel-subtitle">Valores fijos para explorar el diseño.</p></div><span class="mini-icon"><i data-icon="settings"></i></span></div><div class="panel-body"><dl class="assumption-list"><div><dt>Precio de venta unitario</dt><dd>C$80.00 <span>/ unidad</span></dd></div><div><dt>Costo variable unitario</dt><dd>C$48.00 <span>/ unidad</span></dd></div><div><dt>Costos fijos mensuales</dt><dd>C$80,000.00</dd></div><div><dt>Ventas previstas</dt><dd>3,500 <span>unidades / mes</span></dd></div></dl><div class="contribution-note"><span>Margen de contribución</span><strong>C$32.00</strong><small>C$80.00 − C$48.00 por unidad</small></div><button class="button button-secondary assumptions-button" id="review-assumptions">Ver desglose de costos<i data-icon="arrow-right"></i></button></div></aside>
+      </div>
+      <section class="panel safety-panel"><div class="safety-summary"><span class="mini-icon"><i data-icon="trend"></i></span><div><h2 class="panel-title">Un margen para planificar</h2><p>Las ventas previstas superan el equilibrio en <strong>1,000 unidades</strong>.</p></div></div><div class="safety-progress"><div class="safety-track"><span class="break-even-portion"></span><span class="safety-portion"></span></div><div class="safety-labels"><span>Equilibrio <strong>2,500 uds.</strong></span><span>Previsión <strong>3,500 uds.</strong></span></div></div><div class="expected-profit"><span>Utilidad operativa prevista</span><strong>C$32,000</strong></div></section>
+      <p class="note"><i data-icon="info"></i>Escenario ilustrativo con datos de muestra aún sin sincronizar: un producto, precio y costo variable constantes. No incluye intereses ni impuestos.</p>
+    </main>
+    <footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Prototipo de diseño · Datos de ejemplo</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>

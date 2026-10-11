@@ -1,0 +1,240 @@
+/* FINORA · Vista de exposición: contraste alto y tipografía ampliada. */
+/* Sólo pantalla: los reportes impresos conservan su papel blanco. */
+.presentation-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 38px; padding: 8px 11px; border: 1px solid #c7d5ec;
+  border-radius: 7px; color: #305ca5; background: #edf3ff;
+  font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer;
+}
+.presentation-toggle svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.presentation-toggle:hover { background: #dfeaff; }
+.presentation-toggle:focus-visible { outline: 3px solid #80aaff; outline-offset: 3px; }
+.topbar .breadcrumb { min-width: 0; overflow: hidden; }
+.breadcrumb-current { overflow: hidden; text-overflow: ellipsis; }
+@media screen {
+  html[data-presentation="on"] {
+    --bg: #0c1729; --ink: #f1f6ff; --muted: #bfd0e6;
+    --border: #3b526f; --navy: #10213b; --navy-hover: #213b60;
+    --blue: #91bdff; --blue-soft: #233e64;
+    --green: #7aebc4; --red: #ffadba; --amber: #ffd18a;
+    --sidebar-width: 278px;
+    --presentation-panel: #182b45; --presentation-raised: #223b59;
+    color-scheme: dark;
+  }
+  html[data-presentation="on"] body { background: var(--bg); color: var(--ink); font-size: 16px; }
+  html[data-presentation="on"] .sidebar { background: #0b1527; border-right: 1px solid #304765; color: #d4e2f7; }
+  html[data-presentation="on"] .brand-caption { color: #b7cae5; font-size: 10px; }
+  html[data-presentation="on"] .brand-mark { background: #326be4; }
+  html[data-presentation="on"] .nav-label { color: #a9c0e2; font-size: 11px; letter-spacing: 1.4px; }
+  html[data-presentation="on"] .nav-item { font-size: 13px; min-height: 47px; color: #d5e2f4; line-height: 1.5; }
+  html[data-presentation="on"] .nav-item .icon { opacity: 1; width: 19px; height: 19px; }
+  html[data-presentation="on"] .nav-item.active { background: #23477b; color: #fff; box-shadow: inset 3px 0 #a6caff; }
+  html[data-presentation="on"] .nav-item.active .icon { color: #c7deff; }
+  html[data-presentation="on"] .nav-divider { background: #344964; }
+  html[data-presentation="on"] .workspace-card { background: #15283f; border-color: #3b526f; }
+  html[data-presentation="on"] .workspace-card-title { font-size: 13px; }
+  html[data-presentation="on"] .workspace-card :is(p,button) { font-size: 12px; color: #c7daf6; }
+  html[data-presentation="on"] .profile-name { font-size: 13px; }
+  html[data-presentation="on"] .profile-role { color: #b4c9e7; font-size: 11px; }
+  html[data-presentation="on"] .topbar { background: #112138; border-color: var(--border); min-height: 80px; }
+  html[data-presentation="on"] .breadcrumb { color: #b8cce8; font-size: 13px; }
+  html[data-presentation="on"] .breadcrumb-current { color: #e8f1ff; }
+  html[data-presentation="on"] .topbar-actions { gap: 11px; }
+  html[data-presentation="on"] .global-search { background: #1d334f; border-color: #405a7d; color: #d5e4f9; font-size: 12px; height: 38px; }
+  html[data-presentation="on"] .global-search kbd { border-color: #627b9e; font-size: 10px; }
+  html[data-presentation="on"] .icon-button { color: #c3d7f5; }
+  html[data-presentation="on"] .top-avatar { background: #2a4971; color: #fff; }
+  html[data-presentation="on"] .presentation-toggle { background: #2a4d7a; color: #fff; border-color: #93b9f0; min-height: 40px; font-size: 13px; }
+  html[data-presentation="on"] .presentation-toggle:hover { background: #365f93; }
+  html[data-presentation="on"] .main-content { padding-top: 31px; }
+  html[data-presentation="on"] .main-content :where(p,span,small,strong,h1,h2,h3,h4,dt,dd,label) { color: inherit; }
+  html[data-presentation="on"] .page-title { color: #fff; font-size: 34px; line-height: 1.25; }
+  html[data-presentation="on"] .page-description { font-size: 15px; color: var(--muted); line-height: 1.7; }
+  html[data-presentation="on"] .eyebrow { color: #b7d1f6; font-size: 12px; }
+  html[data-presentation="on"] .page-heading { align-items: flex-start; flex-wrap: wrap; }
+  html[data-presentation="on"] :is(.demo-label,.company-caption,.example-context,.analysis-context) { font-size: 13px; color: var(--muted); }
+  html[data-presentation="on"] :is(.company-caption #period-label,.currency-caption) { color: var(--muted); }
+  html[data-presentation="on"] :is(.panel,.stat-card,.budget-context,.report-type,.detail-dialog) { background: var(--presentation-panel); border-color: var(--border); color: var(--ink); }
+  html[data-presentation="on"] :is(.stat-card.dark,.total-leverage,.dupont-result) { background: #1b3d6b; border-color: #638dc5; color: #fff; }
+  html[data-presentation="on"] .stat-card { padding: 23px 21px; }
+  html[data-presentation="on"] :is(.stat-label,.dark .stat-label) { font-size: 15px; color: #d5e4f9; }
+  html[data-presentation="on"] .stat-value { color: #fff; font-size: 31px; margin: 14px 0; letter-spacing: -.8px; }
+  html[data-presentation="on"] .stat-currency { color: #d0e1fa; font-size: 18px; opacity: 1; }
+  html[data-presentation="on"] :is(.stat-caption,.dark .stat-caption) { font-size: 12px; color: #c6d7ed; flex-wrap: wrap; gap: 7px; }
+  html[data-presentation="on"] .trend { font-size: 12px; }
+  html[data-presentation="on"] :is(.trend-positive,.dark .trend-positive,.variation-positive,.amount-income,.income-amount) { color: #7aebc4 !important; }
+  html[data-presentation="on"] :is(.trend-negative,.variation-negative) { color: #ffadba !important; }
+  html[data-presentation="on"] :is(.panel-title,.section-heading h2) { font-size: 19px; color: #f1f6ff; }
+  html[data-presentation="on"] .panel-subtitle { font-size: 13px; color: #bdd1ed; line-height: 1.6; }
+  html[data-presentation="on"] .panel-header { gap: 15px; flex-wrap: wrap; }
+  html[data-presentation="on"] :is(.mini-icon,.transaction-icon,.shortcut-icon,.category-symbol,.context-icon,.product-illustration,.personal-category-icon,.movement-icon,.empty-inventory-icon) { background: #274568; border-color: #4a668b; color: #c9e0ff; }
+  html[data-presentation="on"] :is(.income-icon,.balance-check,.transaction-icon.income,.movement-icon.income) { background: #204b43; border-color: #397268; color: #9ef3d7; }
+  html[data-presentation="on"] :is(.expense-icon,.transaction-icon.out,.movement-icon.expense) { background: #503e2c; border-color: #876c48; color: #ffdda6; }
+  html[data-presentation="on"] :is(.button,.link) { font-size: 13px; }
+  html[data-presentation="on"] .button { min-height: 42px; }
+  html[data-presentation="on"] .button-primary { color: #fff; background: #285dcc; border-color: #77a1f7; }
+  html[data-presentation="on"] .button-primary:hover { background: #326bdc; }
+  html[data-presentation="on"] :is(.button-secondary,.period-picker,.input,.select,.inventory-search) { background: #14263e; color: #eef5ff; border-color: #657f9f; }
+  html[data-presentation="on"] .button-secondary:hover { background: #294767; }
+  html[data-presentation="on"] :is(.button-ghost,.link,.insight-detail) { color: #a4ccff; }
+  html[data-presentation="on"] .button-ghost:hover { background: #274466; }
+  html[data-presentation="on"] :is(.field-label,.period-label) { color: #d2e2f8; font-size: 14px; }
+  html[data-presentation="on"] :is(.input,.select,.period-picker select,.inventory-search > input,.inventory-filters .select) { font-size: 14px; color: #f1f6ff; min-height: 41px; }
+  html[data-presentation="on"] :is(input,textarea)::placeholder { color: #aebfd6; opacity: 1; }
+  html[data-presentation="on"] .period-picker select { background: #14263e; }
+  html[data-presentation="on"] .segmented-control { background: #101f34; border-color: #4b6587; flex-wrap: wrap; }
+  html[data-presentation="on"] :is(.tab-button,.scenario-button) { color: #c5d8f3; font-size: 13px; min-height: 36px; }
+  html[data-presentation="on"] :is(.tab-button[aria-selected="true"],.tab-button.active,.scenario-button[aria-pressed="true"],.report-type.active) { color: #fff; background: #315687; border-color: #92b7ec; }
+  html[data-presentation="on"] .analysis-tabs { border-color: var(--border); }
+  html[data-presentation="on"] .analysis-tabs .tab-button { font-size: 15px; padding: 10px; }
+  html[data-presentation="on"] .data-table { font-size: 14px; }
+  html[data-presentation="on"] .data-table th { background: #203b5e; color: #e3edfc; font-size: 13px; font-weight: 600; border-color: #4a6382; padding-top: 14px; padding-bottom: 14px; }
+  html[data-presentation="on"] .data-table td { color: #e0ebfb; font-size: 14px; border-color: #354d6b; padding-top: 17px; padding-bottom: 17px; }
+  html[data-presentation="on"] .data-table tbody tr:nth-child(even) { background: #1b314e; }
+  html[data-presentation="on"] .data-table tbody tr:hover { background: #2b496c; }
+  html[data-presentation="on"] :is(.cell-main,.inventory-product .cell-main) { font-size: 14px; color: #f1f6ff; }
+  html[data-presentation="on"] :is(.cell-sub,.inventory-product .cell-sub,.stock-unit) { font-size: 12px; color: #bfcee2; }
+  html[data-presentation="on"] :is(.table-footnote,.table-footnote-dot,.movements-footer,.inventory-table-footer,.inventory-updated,.inventory-bottom p) { font-size: 12px; color: #bdd0eb; border-color: #3b526f; }
+  html[data-presentation="on"] .inventory-table-footer > span:last-child { color: #bfd0e6; }
+  html[data-presentation="on"] :is(.subtotal-row,.breakdown-subtotal) { background: #1d3553; border-color: #587295; }
+  html[data-presentation="on"] :is(.total-row,.statement-row.total,.breakdown-total,.reconciliation-total) { background: #294e7a; color: #fff; }
+  html[data-presentation="on"] :is(.badge,.stock-badge) { font-size: 12px; padding: 5px 9px; }
+  html[data-presentation="on"] :is(.badge-blue,.stock-badge) { background: #294d7b; color: #d4e8ff; }
+  html[data-presentation="on"] :is(.badge-green,.stock-badge.available) { background: #1d493e; color: #a8f7d5; }
+  html[data-presentation="on"] :is(.badge-amber,.stock-badge.low) { background: #55412a; color: #ffdb9e; }
+  html[data-presentation="on"] .stock-badge.empty { background: #562d3f; color: #ffbfce; }
+  html[data-presentation="on"] :is(.note,.balance-note,.stage-note,.report-information,.scenario-result,.leverage-insight,.contribution-note,.personal-note,.cash-note,.method-note) { background: #213b59; color: #d4e4fa; border-color: #4c6b91; font-size: 14px; line-height: 1.7; }
+  html[data-presentation="on"] :is(.balance-note strong,.balance-note div > span,.stage-note,.next-step-links strong,.next-step-links small) { color: #d5e6fc; font-size: 13px; }
+  html[data-presentation="on"] :is(.next-step-links a,.chart-footer,.statement-row,.statement-disclaimer) { border-color: #405978; }
+  html[data-presentation="on"] :is(.next-step-links strong,.statement-column h3) { color: #e9f3ff; font-size: 15px; }
+  html[data-presentation="on"] :is(.statement-row,.statement-row strong) { font-size: 15px; color: #dae8fa; }
+  html[data-presentation="on"] .statement-disclaimer { color: #bdd0e9; font-size: 13px; line-height: 1.7; }
+  html[data-presentation="on"] :is(.progress-track,.comparison-track,.sensitivity-track,.safety-track) { background: #36516f; }
+  html[data-presentation="on"] .progress-track { height: 8px; }
+  html[data-presentation="on"] :is(.budget-bar span,.comparison-label,.sensitivity-label,.chart-axis,.chart-legend,.chart-bottom-note,.scenario-assumption,.safety-labels) { color: #d4e4fb; font-size: 13px; }
+  html[data-presentation="on"] :is(.chart-amount,.insight-number,.leverage-value,.ratio-card h2,.expected-profit strong,.savings-amount) { color: #f5f8ff; font-size: 33px; }
+  html[data-presentation="on"] :is(.leverage-card h2,.ratio-card h3) { color: #eaf3ff; font-size: 19px; }
+  html[data-presentation="on"] :is(.leverage-card > p,.ratio-card p,.insight-lead,.insight-point p,.scenario-result p,.leverage-insight p,.scenario-assumption) { color: #c9d9ee; font-size: 14px; line-height: 1.8; }
+  html[data-presentation="on"] :is(.leverage-code,.leverage-formula span,.ratio-values,.ratio-heading,.leverage-breakdown dt,.leverage-breakdown dt span,.breakdown-total dt) { color: #c7d9f2; font-size: 13px; }
+  html[data-presentation="on"] :is(.leverage-formula strong,.leverage-breakdown dd,.sensitivity-label strong,.scenario-result strong,.comparison-label strong) { color: #fff; font-size: 15px; }
+  html[data-presentation="on"] .leverage-formula { border-color: #536f92; }
+  html[data-presentation="on"] :is(.assumption-list dt,.assumption-list dd,.assumption-list dd span,.contribution-note > span,.contribution-note small) { color: #d6e6fc; font-size: 14px; }
+  html[data-presentation="on"] :is(.contribution-note strong,.expected-profit strong) { color: #a6ceff; }
+  html[data-presentation="on"] :is(.dupont-factor,.dupont-explanation) { background: #213b59; border-color: #567397; color: #eaf3ff; }
+  html[data-presentation="on"] :is(.dupont-factor strong,.dupont-result strong) { color: #fff; }
+  html[data-presentation="on"] :is(.dupont-factor p,.dupont-factor small,.dupont-result small,.dupont-explanation p) { color: #d4e4fa; font-size: 13px; }
+  html[data-presentation="on"] :is(.donut-center,.vertical-donut > div,.budget-ring > div) { background: var(--presentation-panel); color: #fff; }
+  html[data-presentation="on"] :is(.donut-center > span,.donut-center .donut-currency,.budget-ring > div > span) { font-size: 11px; color: #d3e4fb; letter-spacing: .2px; }
+  html[data-presentation="on"] :is(.donut-center strong,.vertical-donut strong,.budget-ring strong) { color: #fff; }
+  html[data-presentation="on"] :is(.legend-item,.legend-item strong,.composition-legend,.chart-subtitle,.chart-unit,.chart-footer,.chart-footer .link) { font-size: 12px; color: #ccdef7; }
+  html[data-presentation="on"] :is(.cash-panel,.composition-panel) { height: auto; min-height: 370px; }
+  html[data-presentation="on"] .cash-chart { height: 210px; }
+  html[data-presentation="on"] .chart-footer { flex-wrap: wrap; gap: 10px; padding-top: 15px; padding-bottom: 15px; }
+  html[data-presentation="on"] .chart-footer > span { font-size: 12px; }
+  html[data-presentation="on"] .composition-content { gap: 16px; flex-wrap: wrap; }
+  html[data-presentation="on"] .balance-note { margin-bottom: 20px; }
+  html[data-presentation="on"] :is(.cash-chart,.equilibrium-chart,.waterfall-chart) text { fill: #d7e6fc; font-size: 12px; font-weight: 500; }
+  html[data-presentation="on"] .cash-chart .chart-label { font-size: 12px; }
+  html[data-presentation="on"] :is(.cash-chart .chart-grid,.chart-grid line,.waterfall-grid line) { stroke: #526987; }
+  html[data-presentation="on"] .waterfall-connectors line { stroke: #b0c4df; }
+  html[data-presentation="on"] .waterfall-values text { fill: #f0f6ff; font-size: 14px; font-weight: 650; }
+  html[data-presentation="on"] .waterfall-categories .date-label { fill: #c2d6f0; font-size: 11px; }
+  html[data-presentation="on"] #cash-chart polyline[stroke="#2864f0"] { stroke: #91bdff; }
+  html[data-presentation="on"] #cash-chart circle { stroke: #91bdff; }
+  html[data-presentation="on"] #cash-chart circle[fill="#2864f0"] { fill: #91bdff; }
+  html[data-presentation="on"] .equilibrium-chart line[stroke="#2864F0"] { stroke: #91bdff; }
+  html[data-presentation="on"] .equilibrium-callout rect, html[data-presentation="on"] .equilibrium-callout path { fill: #244d7e; }
+  html[data-presentation="on"] .equilibrium-callout text { fill: #fff; font-size: 12px; }
+  html[data-presentation="on"] .equilibrium-callout text:last-child { font-size: 13px; }
+  html[data-presentation="on"] :is(.inventory-alert,.budget-advice) { background: #3d3226; border-color: #96784e; color: #ffddad; }
+  html[data-presentation="on"] :is(.inventory-alert strong,.budget-advice strong) { color: #ffe2b4; font-size: 15px; }
+  html[data-presentation="on"] :is(.inventory-alert p,.budget-advice p) { color: #eed3ad; font-size: 13px; }
+  html[data-presentation="on"] .inventory-alert .button { color: #ffe3b8; border-color: #b79766; font-size: 13px; }
+  html[data-presentation="on"] .inventory-warning { background: #59432a !important; color: #ffe0a9 !important; }
+  html[data-presentation="on"] :is(.health-caption p,.budget-context p,.personal-category-title,.personal-category-title strong,.personal-category-title span,.personal-category-title small,.savings-description,.savings-note,.savings-progress-caption) { color: #cadcf5; font-size: 14px; }
+  html[data-presentation="on"] :is(.budget-context strong,.budget-category,.savings-panel h3) { color: #f2f7ff; font-size: 16px; }
+  html[data-presentation="on"] .savings-coin { color: #c4e0ff; background: #315987; border-color: #799bc7; }
+  html[data-presentation="on"] .savings-orbit { border-color: #517398; }
+  html[data-presentation="on"] .report-preview { background: #101e32; border-color: #425c7c; }
+  html[data-presentation="on"] .report-paper { background: #192e49; color: #edf5ff; border-color: #516e92; }
+  html[data-presentation="on"] :is(.preview-toolbar,.paper-status,.paper-notes,.paper-footer,.paper-highlight-description) { color: #bcd0ed; font-size: 12px; }
+  html[data-presentation="on"] .paper-wordmark > span { color: #c8daf3; font-size: 9px; }
+  html[data-presentation="on"] .paper-heading { border-color: #91b5e7; }
+  html[data-presentation="on"] .paper-heading h2 { font-size: 25px; }
+  html[data-presentation="on"] :is(.paper-heading > p,.paper-heading > div,.paper-notes strong) { color: #d3e2f7; font-size: 13px; }
+  html[data-presentation="on"] .statement-table { font-size: 14px; }
+  html[data-presentation="on"] .statement-table thead th { color: #c5d8f3; font-size: 13px; }
+  html[data-presentation="on"] .statement-table .statement-group th { color: #abd0ff; font-size: 12px; }
+  html[data-presentation="on"] .statement-table .statement-subtotal > * { border-color: #6884a7; }
+  html[data-presentation="on"] .statement-table .statement-total > * { color: #fff; background: #315682; font-size: 15px; }
+  html[data-presentation="on"] .paper-highlight { background: #224367; border-color: #6286b1; color: #e2efff; font-size: 13px; }
+  html[data-presentation="on"] .paper-highlight strong { color: #b3d6ff; font-size: 23px; }
+  html[data-presentation="on"] .balance-highlight { background: #214a43; color: #b8ffe2; border-color: #5a9686; }
+  html[data-presentation="on"] :is(.report-type strong,.report-help strong) { font-size: 14px; }
+  html[data-presentation="on"] :is(.report-type small,.scenario-description,.assumption-row,.report-information p,.report-help p) { color: #c8daf3; font-size: 13px; }
+  html[data-presentation="on"] .dialog-header h2 { color: #f1f6ff; font-size: 21px; }
+  html[data-presentation="on"] .dialog-content { color: #e2edfc; font-size: 16px; }
+  html[data-presentation="on"] .dialog-content :is(p,span,small,strong,dt,dd) { color: inherit; }
+  html[data-presentation="on"] .dialog-content .note { color: #d5e5fa; }
+  html[data-presentation="on"] .search-result { font-size: 15px; }
+  html[data-presentation="on"] .page-footer { color: #b6cce8; font-size: 12px; }
+  html[data-presentation="on"] .skip-link { background: #2d5080; color: #fff; }
+  html[data-presentation="on"] .toast { background: #25476e; color: #fff; border-color: #9abcdf; font-size: 15px; }
+}
+@media screen and (max-width: 1399px) {
+  html[data-presentation="on"] .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+  html[data-presentation="on"] .stat-value { font-size: 34px; }
+  html[data-presentation="on"] .global-search span, html[data-presentation="on"] .global-search kbd { display: none; }
+  html[data-presentation="on"] .global-search { padding: 9px; }
+  html[data-presentation="on"] .proforma-layout { grid-template-columns: 1fr; }
+  html[data-presentation="on"] .report-types { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media screen and (max-width: 1150px) {
+  html[data-presentation="on"] .two-column { grid-template-columns: minmax(0,1fr); gap: 0; }
+  html[data-presentation="on"] .cash-panel { min-height: 0; }
+  html[data-presentation="on"] .composition-panel { min-height: 0; }
+  html[data-presentation="on"] .heading-actions { flex-wrap: wrap; }
+}
+@media screen and (max-width: 760px) {
+  html[data-presentation="on"] { --sidebar-width: 278px; }
+  html[data-presentation="on"] .topbar { padding: 12px 16px; min-height: 72px; flex-wrap: wrap; row-gap: 9px; }
+  html[data-presentation="on"] .breadcrumb { font-size: 12px; flex: 1; }
+  html[data-presentation="on"] .topbar-actions { width: 100%; justify-content: flex-end; gap: 13px; }
+  html[data-presentation="on"] .presentation-toggle { margin-right: auto; }
+  html[data-presentation="on"] .topbar-separator { display: none; }
+  html[data-presentation="on"] .page-title { font-size: 29px; }
+  html[data-presentation="on"] .page-description { font-size: 14px; }
+  html[data-presentation="on"] .main-content { padding: 24px 18px 18px; }
+  html[data-presentation="on"] .stat-value { font-size: 29px; }
+  html[data-presentation="on"] .panel-header { flex-wrap: wrap; }
+  html[data-presentation="on"] .cash-panel .panel-header { align-items: flex-start; }
+  html[data-presentation="on"] .movements-panel .data-table { min-width: 500px; }
+  html[data-presentation="on"] :is(.personal-category-title,.scenario-controls) { flex-wrap: wrap; gap: 8px; }
+  html[data-presentation="on"] .statement-grid { grid-template-columns: 1fr; }
+  html[data-presentation="on"] .report-paper { padding: 23px 17px; }
+  html[data-presentation="on"] .paper-heading > div { flex-wrap: wrap; }
+  html[data-presentation="on"] .paper-status { font-size: 10px; max-width: 130px; text-align: right; }
+  html[data-presentation="on"] .cash-chart text { font-size: 16px; }
+}
+@media screen and (max-width: 550px) {
+  html[data-presentation="on"] .stats-grid { grid-template-columns: 1fr; }
+  html[data-presentation="on"] .stat-value { font-size: 34px; }
+  html[data-presentation="on"] .report-types { grid-template-columns: 1fr; }
+  html[data-presentation="on"] .statement-table { font-size: 12px; }
+  html[data-presentation="on"] .statement-table .statement-total > * { font-size: 13px; }
+  html[data-presentation="on"] .chart-footer > span { font-size: 11px; }
+  html[data-presentation="on"] .chart-footer .link { font-size: 12px; }
+}
+@media (max-width: 760px) { .presentation-toggle { font-size: 11px; padding: 7px 9px; }.topbar-actions { gap: 8px; } }
+@media print { .presentation-toggle { display: none !important; } }
+
+@media screen {
+  html[data-presentation="on"] :is(.cash-filter,.waterfall-legend,.cash-filter-label) { color: #c8dcf5; font-size: 13px; }
+  html[data-presentation="on"] :is(.cash-filter[aria-pressed="true"],.cash-filter:hover,.row-detail:hover,.product-detail-button:hover) { background: #315687; color: #fff; }
+  html[data-presentation="on"] .inventory-alert .button:hover { background: #654e30; color: #fff1d9; }
+  html[data-presentation="on"] .equilibrium-chart path[fill="#F5F1EA"] { fill: #503b30; }
+  html[data-presentation="on"] :is(.activity-item p,.cash-reconciliation > span,.cash-reconciliation small,.cash-table-footer,.chart-key li,.dupont-flow span:not(.math-symbol),.safety-summary p,.expected-profit > span,.welcome-copy p,.welcome-month,.personal-balance > p) { color: #c8dcf5; font-size: 13px; }
+  html[data-presentation="on"] .cash-reconciliation strong { color: #fff; font-size: 25px; }
+  html[data-presentation="on"] .savings-progress-caption > span:first-child { color: #a8f7d5; }
+  html[data-presentation="on"] .legend-line.income { border-color: #91bdff; }
+}
