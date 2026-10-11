@@ -22,13 +22,13 @@ function makeBook() {const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet
   assert.equal(await page.inputValue('#file-previous-year'),'2024');assert.equal(await page.inputValue('#file-current-year'),'2025');
   assert.equal(await page.inputValue('#file-previous'),'2');assert.equal(await page.inputValue('#file-current'),'1');
   assert.deepEqual(await lists(),before);
-  await page.click('#file-review');await page.waitForSelector('#import-summary');
+  if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');await page.waitForSelector('#import-summary');
   assert.equal(await page.inputValue('[data-import-side="previous"] >> nth=0'),'100');
   assert.equal(await page.inputValue('[data-import-side="current"] >> nth=0'),'200');
   assert.match(await page.locator('#import-workspace').innerText(),/prueba-invertida.xlsx/);
   await page.click('[data-import-action="cancel"]');assert.deepEqual(await lists(),before,'Cancelar no crea casos');assert.equal(await page.locator('#start-panel').isVisible(),true);
   console.log('ok carga inicial, hojas, años invertidos y cancelación');
-  await page.click('#start-upload');await page.setInputFiles('#financial-file',file);await page.waitForSelector('#file-sheet');await page.selectOption('#file-sheet','Balance');await page.waitForSelector('#file-review');await page.click('#file-review');await page.waitForSelector('#import-summary');
+  await page.click('#start-upload');await page.setInputFiles('#financial-file',file);await page.waitForSelector('#file-sheet');await page.selectOption('#file-sheet','Balance');await page.waitForSelector('#file-review');if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');await page.waitForSelector('#import-summary');
   assert.equal(await page.locator('[data-import-action="apply"]').isDisabled(),false);
   await page.click('[data-import-action="apply"]');await page.waitForSelector('#upload-excel');
   assert.equal(await page.locator('#start-panel').isVisible(),false);assert.equal((await model()).balance[0].amounts.current,200);
@@ -39,7 +39,7 @@ function makeBook() {const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet
 
   await page.click('#tab-income');await page.click('#upload-excel');await page.setInputFiles('#financial-file',file);await page.waitForSelector('#file-review');
   assert.equal(await page.inputValue('#file-sheet'),'Resultados');
-  await page.click('#file-review');await page.waitForSelector('#import-summary');
+  if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');await page.waitForSelector('#import-summary');
   assert.deepEqual(await model(),saved,'Revisión de resultados no cambia balance');
   const confirm=page.locator('[data-edit="confirmed"]');for(let i=0;i<await confirm.count();i++)await confirm.nth(i).check();
   await page.click('[data-import-action="apply"]');await page.waitForSelector('.detail-dialog',{state:'hidden'});
@@ -51,7 +51,7 @@ function makeBook() {const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet
   await page.setInputFiles('#financial-file',csv);await page.waitForSelector('#file-review');
   assert.equal(await page.inputValue('#file-previous-year'),'2024');assert.equal(await page.inputValue('#file-current-year'),'2025');
   await page.selectOption('#file-previous','2');assert.equal(await page.inputValue('#file-previous-year'),'2023');
-  await page.click('#file-review');await page.waitForSelector('#import-summary');
+  if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');await page.waitForSelector('#import-summary');
   assert.doesNotMatch(await page.locator('#import-errors').innerText(),/años no coinciden/);assert.equal(await page.locator('#import-period-notice').isVisible(),true);
   const csvConfirm=page.locator('[data-edit="confirmed"]');for(let i=0;i<await csvConfirm.count();i++)await csvConfirm.nth(i).check();
   assert.equal(await page.locator('[data-import-action="apply"]').isDisabled(),false);
@@ -60,8 +60,8 @@ function makeBook() {const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet
 
   await page.click('#upload-excel');
   await page.setInputFiles('#financial-file',{name:'sin-anios.csv',mimeType:'text/csv',buffer:Buffer.from('Cuenta;Anterior;Actual\nCaja;100;200\nCapital social;100;200')});await page.waitForSelector('#file-review');
-  await page.fill('#file-previous-year','2024');await page.fill('#file-current-year','2025');await page.click('#file-review');assert.match(await page.locator('#file-error').innerText(),/Confirma/);
-  await page.check('#file-confirm-columns');await page.click('#file-review');await page.waitForSelector('#import-summary');await page.click('[data-import-action="cancel"]');
+  await page.fill('#file-previous-year','2024');await page.fill('#file-current-year','2025');if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');assert.match(await page.locator('#file-error').innerText(),/Confirma/);
+  await page.check('#file-confirm-columns');if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');await page.waitForSelector('#import-summary');await page.click('[data-import-action="cancel"]');
   console.log('ok columnas sin años requieren confirmación');
 
   await page.click('#upload-excel');await page.setInputFiles('#financial-file',{name:'danado.xlsx',mimeType:'application/octet-stream',buffer:Buffer.from('archivo inválido')});

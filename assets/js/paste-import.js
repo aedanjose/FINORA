@@ -265,7 +265,7 @@
     const skip = /^(balance|estado|estados|cuenta|concepto|cifras|valores|expresado|al \d|del? \d|periodo|ejercicio|activos?|pasivos?|capital|ingresos|ventas)\b|\b(miles|millones)\b|^[a-z]{0,3}\$/;
     for (const raw of String(text ?? '').split(/\r?\n/).slice(0, 6)) {
       const line = raw.replace(/\t+/g, ' ').trim();
-      if (!line || /\d/.test(line) || line.length > 80 || skip.test(norm(line))) continue;
+      if (!line || /\d/.test(line) || line.length > 80 || skip.test(norm(line)) || /\b(moneda|cordobas|dolares|ejemplo ficticio|instrucciones|comprobaciones)\b/.test(norm(line))) continue;
       return line;
     }
     return null;
@@ -273,4 +273,3 @@
   const api = { analyze, validate, buildCase, parseAmount, detectKind, detectCompany, BLOCKS, CATEGORIES };
   if (node) module.exports = api; else root.FinoraPaste = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
-

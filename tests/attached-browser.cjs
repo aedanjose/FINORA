@@ -15,7 +15,7 @@ function file(){
   const model=()=>page.evaluate(()=>FinoraCasos.store.active());
   await page.goto(base+'/modulos/estados-financieros/index.html');await page.waitForSelector('[data-start-sample="dayton"]');await page.click('[data-start-sample="dayton"]');
   const original=await model(),listBefore=await page.evaluate(()=>FinoraCasos.store.list());
-  const importSheet=async(kind)=>{await page.click('#tab-'+kind);await page.click('#upload-excel');await page.setInputFiles('#financial-file',file());await page.waitForSelector('#file-review');await page.click('#file-review');await page.waitForSelector('#import-summary');};
+  const importSheet=async(kind)=>{await page.click('#tab-'+kind);await page.click('#upload-excel');await page.setInputFiles('#financial-file',file());await page.waitForSelector('#file-review');if(await page.locator('#file-both').count()) await page.uncheck('#file-both');await page.click('#file-review');await page.waitForSelector('#import-summary');};
   await importSheet('balance');
   assert.doesNotMatch(await page.locator('#import-errors').innerText(),/años no coinciden/);
   assert.equal(await page.locator('#import-period-notice').isVisible(),true);

@@ -26,11 +26,11 @@
     const workspace = modal.querySelector('#import-workspace');
     const abort = new AbortController();
     modal.addEventListener('close', () => { abort.abort(); modal.classList.remove('import-dialog'); }, { once: true });
-    const isStale = () => !fresh && JSON.stringify(C.store.active()) !== snapshot;
+    const isStale = () => options.isStale ? options.isStale() : !fresh && JSON.stringify(C.store.active()) !== snapshot;
 
     // Revisar un documento de otros años prepara una copia nueva, sin cambiar el guardado actual.
     function resolvePeriods() {
-      if (!draft || fresh || mode !== 'replace') return;
+      if (options.onReview || !draft || fresh || mode !== 'replace') return;
       const p = draft.periods;
       const valid = /^\d{4}$/.test(String(p.previous)) && /^\d{4}$/.test(String(p.current)) && +p.previous >= 1900 && +p.current <= 2100 && +p.previous < +p.current;
       const differs = SIDES.some(side => String(p[side]) !== String(baseline.periods[side]));
@@ -98,8 +98,17 @@
       workspace.querySelector('.import-apply-note').textContent = fresh ? 'Al aplicar, se guardará un documento nuevo. Los documentos anteriores se conservan.' : mode === 'append' ? 'Se agregarán las cuentas incluidas al estado actual.' : 'Al aplicar, se reemplazarán las cuentas del ' + label + '. El otro estado y los datos actuales se conservan.';
       workspace.querySelector('[data-import-action="apply"]').textContent = fresh ? 'Aplicar y guardar documento' : mode === 'append' ? 'Agregar cuentas revisadas' : 'Aplicar cuentas revisadas';
       if (fresh) modal.querySelector('#dialog-title').textContent = 'Nuevo documento financiero';
+      if (options.onReview) {
+        modal.querySelector('#dialog-title').textContent = options.title;
+        workspace.querySelector('.import-kicker').textContent = options.step;
+        workspace.querySelector('.import-apply-note').textContent = options.note;
+        workspace.querySelector('[data-import-action="apply"]').textContent = options.applyLabel;
+        workspace.querySelector('[data-import-action="back"]').textContent = options.onBack ? 'Volver al balance' : 'Volver a las hojas';
+        notice.hidden = !options.periodNote;
+        notice.textContent = options.periodNote || '';
+      }
       const validation = P.validate(draft, baseline);
-      const errors = [...validation.errors];
+      const errors = [...validation.errors, ...(options.validateDraft?.(draft) || [])];
       if (isStale()) errors.push({ code: 'stale', message: 'La empresa cambió mientras revisabas. Cierra esta ventana y vuelve a pegar para trabajar con los datos actuales.' });
       workspace.querySelectorAll('[data-import-heading]').forEach(el => { el.textContent = draft.periods[el.dataset.importHeading]; });
       workspace.querySelectorAll('[data-import-row]').forEach(tr => {
@@ -187,11 +196,16 @@
         modal.close(); return;
       }
       if (action === 'cancel') modal.close();
-      if (action === 'back') sourceView();
+      if (action === 'back') { if (options.onBack) options.onBack(draft, modal); else sourceView(); }
       if (action === 'analyze') analyze();
       if (action === 'apply') {
         if (isStale()) { refresh(); return; }
         try {
+          if (options.onReview) {
+            const validation=P.validate(draft,baseline), extra=options.validateDraft?.(draft)||[];
+            if(!validation.valid||extra.length) { refresh(); return; }
+            options.onReview(draft,modal); return;
+          }
           const next = P.buildCase(baseline, draft);
           const saved = fresh ? C.store.add(next) : C.store.save(next);
           const count = draft.rows.filter(row => row.include !== false).length;
