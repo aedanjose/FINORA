@@ -1,0 +1,22 @@
+Dayton Products, Inc.
+Balance general al 31 de diciembre (en miles de dólares)
+Cuenta	2012	2011
+Activos
+Efectivo y equivalentes	7,229	6,547
+Cuentas por cobrar	21,163	19,549
+Inventarios	8,068	7,904
+Otros activos corrientes	1,831	1,681
+Propiedad, planta y equipo brutos	204,960	187,519
+Depreciación y agotamientos acumulados	110,020	97,917
+Otros activos no corrientes	19,413	17,891
+Total de activos	152,644	143,174
+Pasivos
+Cuentas por pagar	13,792	22,862
+Deuda por pagar a corto plazo	4,093	3,703
+Otros pasivos corrientes	15,290	3,549
+Deuda por pagar a largo plazo	6,655	7,099
+Impuesto sobre la renta diferido	16,484	16,359
+Otros pasivos no corrientes	21,733	16,441
+Capital
+Ganancias retenidas	74,597	73,161
+Total de pasivo + capital	152,644	143,174

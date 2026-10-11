@@ -1,0 +1,14 @@
+# Pruebas de Finora
+
+Desde la carpeta del proyecto:
+
+```powershell
+node tests/casos.test.cjs
+node --test tests/import.test.cjs
+```
+
+Estas pruebas no requieren internet ni dependencias externas. Cubren los casos de clase, los totales informados y el lector de tablas reutilizado de GestiCode.
+
+Para la prueba de interfaz, inicia `node tools/preview.mjs` en otra terminal y ejecuta `node tests/ledger-browser.cjs`. Requiere Playwright y un navegador Chromium. Si no están en las rutas estándar, define `FINORA_PLAYWRIGHT` con la ruta del módulo y `FINORA_BROWSER_PATH` con la ruta del ejecutable. Opcionalmente, `FINORA_BASE_URL` cambia `http://127.0.0.1:4173`.
+
+El navegador de pruebas usa un contexto nuevo y aislado; no toca los casos del navegador del usuario. Comprueba cancelar/aplicar, persistencia, totales, edición, teclado, pegado directo, opciones de cuentas, sincronización con análisis y vista móvil. Guarda capturas de comprobación en `.reference/`.

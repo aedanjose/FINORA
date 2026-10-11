@@ -187,5 +187,27 @@ test('Restas mal planteadas: mensaje claro en lugar del error genérico del moto
   close(nets[0].after, 204960 - 940 - 110020, 6);
 });
 
+test('Totales importados de resultados se comprueban y detectan cambios de cuentas', () => {
+  const c = C.samples.dayton();
+  const income = C.analyzeIncome(c);
+  c.reported['income:netProfit'] = { previous: income.statements.previous.netProfit, current: income.statements.current.netProfit };
+  c.reported['income:operatingExpenses'] = { previous: income.statements.previous.operatingExpenses, current: income.statements.current.operatingExpenses };
+  let imported = C.checks(c).items.filter(item => item.note === 'Total del documento vs suma de cuentas' && /Utilidad neta|Gastos operativos/.test(item.name));
+  assert.equal(imported.length, 4); assert.ok(imported.every(item => item.ok === true));
+  c.income.find(a => a.category === 'opex').amounts.current += 100;
+  imported = C.checks(c).items.filter(item => item.note === 'Total del documento vs suma de cuentas' && /Utilidad neta|Gastos operativos/.test(item.name));
+  assert.ok(imported.filter(item => item.period === '2012').every(item => item.ok === false));
+  assert.ok(imported.filter(item => item.period === '2011').every(item => item.ok === true));
+});
+test('Totales importados de plazos y capital no sustituyen el cálculo del balance', () => {
+  const c = C.samples['mundo-moda']();
+  c.reported['balance:nonCurrentAssets'] = { previous: 555600, current: 669525 };
+  c.reported.equity = { previous: 587815, current: 763550.25 };
+  let checks = C.checks(c).items.filter(item => item.name === 'Activos no circulantes' || item.name === 'Total capital');
+  assert.equal(checks.length, 6); assert.ok(checks.every(item => item.ok === true));
+  c.reported.equity.current = 0;
+  checks = C.checks(c).items.filter(item => item.name === 'Total capital' && item.period === '2019');
+  assert.equal(checks[0].ok, false); assert.equal(checks[0].calculated, 763550.25);
+});
 console.log(`\n${passed} pasan, ${failed} fallan`);
 process.exitCode = failed ? 1 : 0;

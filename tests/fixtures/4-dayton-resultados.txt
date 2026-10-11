@@ -1,0 +1,17 @@
+Dayton Products, Inc.
+Estado de resultados (en miles de dólares)
+Cuenta	2012	2011
+Ventas	178,909	187,510
+Costo de bienes vendidos	109,701	111,631
+Utilidad bruta	69,208	75,879
+Gastos operativos
+Gastos de ventas, generales y administración	12,356	12,900
+Depreciación y amortización	12,103	7,944
+Otros gastos fiscales	33,572	33,377
+Total gastos operativos	58,031	54,221
+Utilidad operativa	11,177	21,658
+Otros ingresos	3,147	3,323
+Gasto por interés	398	293
+Utilidad neta antes de impuestos	13,926	24,688
+Tasa de impuestos	0.35324	0.37495
+Utilidad neta después de impuestos	9,006.77976	15,431.2344

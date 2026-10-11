@@ -1,0 +1,41 @@
+MUNDO MODA S.A
+BALANCE GENERAL
+U$ Miles
+ACTIVOS 	Dic. 	Dic.
+	31/2018	31/2019
+ACTIVOS CIRCULANTES
+Banco 	88342	260975.2
+Cliente	87400	52472
+IVA x cobrar 	21383	56007.05
+Inventario	98350	34763
+Seguro pagado x Ad.	20400	20400
+Total	315875	424617.25
+ACTIVOS NO CIRCULANTES 
+Equipo de transporte	420000	612235
+Depreciación acumulada Trans.	7000	16750
+Total, equipo de transporte 	413000	595485
+Equipo de oficina 	84000	53218
+Depreciación acum. Equ. de ofi. 	1400	1890
+Total, equipo de oficina 	82600	51328
+Total 	495600	646813
+OTROS ACTIVOS 
+Franquicias 	60000	0
+Otros activos 	0	22712
+Total 	60000	22712
+TOTAL, ACTIVOS 	871475	1094142.25
+PASIVO
+PASIVO DE CORTO PLAZO
+Proveedor	83140	98535
+IVA x pagar 	41175	67586.25
+IR x pagar	25445	45350.75
+Acreedor	18900	23320
+Total 	168660	234792
+PASIVO DE LARGO PLAZO
+Préstamos	115000	95800
+Total 	115000	95800
+TOTAL, PASIVO	283660	330592
+CAPITAL
+Capital social	500000	600000
+Utilidades 	87815	163550.25
+Total, Capital 	587815	763550.25
+Total, pasivo y capital 	871475	1094142.25

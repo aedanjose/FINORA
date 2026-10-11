@@ -1,0 +1,68 @@
+/* Importación revisable, estilos propios del módulo. */
+.detail-dialog.import-dialog { width: min(1050px, calc(100vw - 32px)); max-height: 90vh; background: var(--surface); }
+.import-dialog .dialog-content { padding-top: 18px; }
+.import-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+.import-destination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 13px 16px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); }
+.import-destination span { color: var(--muted); font-size: 12px; }
+.import-source { width: 100%; min-height: 230px; resize: vertical; padding: 16px; border: 1px solid var(--input-border); border-radius: 8px; color: var(--ink); background: var(--input-bg); font: 13px/1.8 ui-monospace, Consolas, monospace; tab-size: 16; white-space: pre; }
+.import-source:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+.import-dialog .import-help, .import-apply-note { font-size: 12px; line-height: 1.7; color: var(--muted); }
+.import-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; padding-top: 17px; margin-top: 15px; border-top: 1px solid var(--border); }
+.import-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.import-periods { display: grid; grid-template-columns: 150px 150px 1fr; gap: 16px; align-items: end; }
+.import-periods label { display: grid; gap: 6px; }
+.import-periods p { color: var(--muted); font-size: 12px; margin: 0; }
+.import-summary { padding: 11px 0; font-size: 13px; font-weight: 600; }
+.import-table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+.import-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.import-table th, .import-table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; }
+.import-table th { background: var(--row-group); font-size: 12px; color: var(--muted); font-weight: 600; }
+.import-table td:first-child { width: 60px; text-align: center; }
+.import-table th:nth-last-child(-n+2) { text-align: right; }
+.import-table td:nth-last-child(-n+2) { width: 145px; }
+.import-table input:not([type="checkbox"]), .import-table select { width: 100%; min-height: 35px; padding: 5px 8px; border: 1px solid var(--input-border); border-radius: 5px; font: inherit; background: var(--input-bg); color: var(--ink); }
+.import-table .import-number { min-width: 112px; text-align: right; }
+.import-table .import-account-name { min-width: 260px; }
+.import-table input[type="checkbox"] { width: 17px; height: 17px; margin-top: 8px; accent-color: #326be4; }
+.import-table input:focus, .import-table select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.import-table input[aria-invalid="true"] { border-color: var(--negative); }
+.import-row-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.import-row-tags span { font-size: 10px; color: var(--muted); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; }
+.import-classification { margin-top: 8px; }
+.import-classification summary { font-size: 11px; color: var(--blue); cursor: pointer; }
+.import-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 10px; }
+.import-row-fields label { font-size: 11px; display: grid; gap: 4px; }
+.import-confirm { display: flex; align-items: center; gap: 8px; margin-top: 7px; font-size: 12px; color: var(--ink); }
+.import-confirm input[type="checkbox"] { margin: 0; flex: 0 0 auto; }
+.import-excluded td:not(:first-child) { opacity: .55; }
+.import-dialog .import-error, .import-dialog .import-row-error { font-size: 12px; color: var(--negative); line-height: 1.6; }
+.import-row-error { margin: 6px 0 0; }
+.import-row-error:empty, #import-source-error:empty { display: none; }
+.import-checks, .import-notes { padding: 13px 0; border-bottom: 1px solid var(--border); }
+.import-checks > summary, .import-notes > summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.import-checks .import-table-scroll { margin-top: 12px; }
+.import-totals td:first-child { width: auto; text-align: left; min-width: 200px; }
+.import-dialog .import-match { color: var(--green); }
+.import-notes ul { padding-left: 22px; font-size: 12px; color: var(--muted); }
+.import-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 12px 20px; gap: 12px; border-bottom: 1px solid var(--border); }
+.import-toolbar p { margin: 0; color: var(--muted); font-size: 12px; }
+@media screen {
+  html[data-presentation="on"] .import-dialog :is(.import-kicker,.import-help,.import-apply-note,.import-summary,.import-periods p,.import-destination span,.import-classification summary,.import-row-fields label,.import-confirm,.import-row-error,.import-error,.import-notes ul,.import-toolbar p) { font-size: 14px; }
+  html[data-presentation="on"] .import-dialog :is(.import-table,.import-source) { font-size: 15px; }
+  html[data-presentation="on"] .import-dialog :is(.import-error,.import-row-error) { color: var(--negative); }
+  html[data-presentation="on"] .import-dialog .import-match { color: var(--green); }
+  html[data-presentation="on"] .import-row-tags span { color: #c8dcf5; font-size: 12px; }
+  html[data-presentation="on"] .import-review-tag { border-color: #ad905a; }
+}
+@media (max-width: 760px) {
+  .import-dialog .dialog-content { padding: 16px; }
+  .import-periods { grid-template-columns: 1fr 1fr; }
+  .import-periods p { grid-column: 1 / -1; }
+  .import-table th, .import-table td { padding: 9px; }
+  .import-table .import-account-name { min-width: 210px; }
+  .import-actions .button { flex: 1 1 auto; }
+  .import-row-fields { grid-template-columns: 1fr; }
+}
+@media print { .import-toolbar, .import-dialog { display: none !important; } }
+.import-units { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.import-units input { margin-top: 3px; flex: 0 0 auto; }

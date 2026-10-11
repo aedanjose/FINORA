@@ -517,7 +517,18 @@
       if (balance.errors[side] && !balance.issues.some(x => x.text === balance.errors[side])) out.push({ name: 'Clasificación de cuentas', period: p[side], reported: null, calculated: null, difference: null, ok: false, note: balance.errors[side] });
     }
     balance.groups.forEach(g => SIDES.forEach(side => { if (has(reported[g.key]?.[side])) add(g.name, side, reported[g.key][side], g.total[side], 'Total del documento vs suma de cuentas'); }));
-    [['assets', 'Total activos'], ['liabilities', 'Total pasivo'], ['funding', 'Total pasivo y capital']].forEach(([key, name]) => SIDES.forEach(side => { if (has(reported[key]?.[side])) add(name, side, reported[key][side], balance.totals[key][side], 'Total del documento vs suma de cuentas'); }));
+    [['assets', 'Total activos'], ['liabilities', 'Total pasivo'], ['equity', 'Total capital'], ['funding', 'Total pasivo y capital']].forEach(([key, name]) => SIDES.forEach(side => { if (has(reported[key]?.[side])) add(name, side, reported[key][side], balance.totals[key][side], 'Total del documento vs suma de cuentas'); }));
+    // Totales importados de todo un plazo y del estado de resultados.
+    const balanceParts = { currentAssets: 'Activos circulantes', nonCurrentAssets: 'Activos no circulantes', currentLiabilities: 'Pasivo de corto plazo', nonCurrentLiabilities: 'Pasivo de largo plazo' };
+    Object.entries(balanceParts).forEach(([part, label]) => SIDES.forEach(side => {
+      const expected = reported[`balance:${part}`]?.[side];
+      if (has(expected)) add(label, side, expected, balance.engine[side]?.[part] ?? null, 'Total del documento vs suma de cuentas');
+    }));
+    const incomeTotals = { sales: 'Ventas netas', costSales: 'Costo de ventas', grossProfit: 'Utilidad bruta', operatingExpenses: 'Gastos operativos', otherIncome: 'Otros ingresos', interest: 'Gastos financieros', taxes: 'Impuestos', ebit: 'Utilidad operativa', ebt: 'Utilidad antes de impuestos', netProfit: 'Utilidad neta', commonProfit: 'Utilidad disponible para acciones comunes' };
+    Object.entries(incomeTotals).forEach(([part, label]) => SIDES.forEach(side => {
+      const expected = reported[`income:${part}`]?.[side];
+      if (has(expected)) add(label, side, expected, income.statements?.[side]?.[part] ?? null, 'Total del documento vs suma de cuentas');
+    }));
     SIDES.forEach(side => { if (has(balance.totals.assets[side]) || has(balance.totals.funding[side])) add('Ecuación contable', side, balance.totals.assets[side], balance.totals.funding[side], 'Activo = Pasivo + Capital'); });
     // Una contracuenta no puede ser mayor que el activo que corrige.
     balance.issues.forEach(x => {
