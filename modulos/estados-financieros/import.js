@@ -20,7 +20,7 @@
     const snapshot = JSON.stringify(baseline);
     const label = kind === 'balance' ? 'balance general' : 'estado de resultados';
     let source = options.text || '', draft = null;
-    const modal = window.Finora.openDialog(fresh ? 'Nueva empresa desde un documento' : 'Pegar desde Excel', '<div id="import-workspace"></div>');
+    const modal = window.Finora.openDialog(fresh ? 'Nuevo documento financiero' : options.fileName ? 'Revisar archivo' : 'Pegar desde Excel', '<div id="import-workspace"></div>');
     modal.classList.add('import-dialog');
     const workspace = modal.querySelector('#import-workspace');
     const abort = new AbortController();
@@ -32,6 +32,7 @@
       workspace.innerHTML = `<p class="import-kicker">01 · Pegar tabla</p><p>Copia las cuentas y las dos columnas de años de Excel y pégalas aquí. Puedes incluir encabezados, grupos y totales.</p>
         <div class="import-destination"><strong>${esc(baseline.name)}</strong><span>${esc(label)} · ${mode === 'append' ? 'Agregar cuentas' : 'Reemplazar este estado'}</span></div>
         <label class="field-label" for="import-source">Tabla copiada de Excel</label><textarea id="import-source" class="import-source" spellcheck="false" maxlength="200000" placeholder="Cuenta&#9;${esc(baseline.periods.previous)}&#9;${esc(baseline.periods.current)}&#10;Efectivo y bancos&#9;10,000&#9;12,500">${esc(source)}</textarea>
+        <button type="button" class="button button-secondary" data-import-action="file">Subir Excel o CSV</button>
         <p class="import-help">Ctrl + V para pegar. No se guarda nada hasta que revises y apliques. Funciona sin internet.</p>
         <p class="import-error" role="alert" id="import-source-error">${esc(message)}</p>
         <div class="import-actions"><button type="button" class="button button-secondary" data-import-action="cancel">Cancelar</button><button type="button" class="button button-primary" data-import-action="analyze">Revisar tabla</button></div>`;
@@ -55,7 +56,7 @@
     }
 
     function reviewView() {
-      workspace.innerHTML = `<p class="import-kicker">02 · Revisar antes de aplicar</p><div class="import-destination"><strong>${esc(baseline.name)}</strong><span>${esc(label)} · ${mode === 'append' ? 'Agregar cuentas' : 'Reemplazar este estado'}</span></div>
+      workspace.innerHTML = `<p class="import-kicker">02 · Revisar antes de aplicar</p>${options.fileName ? `<p class="import-help">Archivo: ${esc(options.fileName)}</p>` : ''}<div class="import-destination"><strong>${esc(baseline.name)}</strong><span>${esc(label)} · ${mode === 'append' ? 'Agregar cuentas' : 'Reemplazar este estado'}</span></div>
         <div class="import-periods">${SIDES.map((side, i) => `<label class="field-label" for="import-${side}">${i ? 'Año actual' : 'Año anterior'}<input class="input" id="import-${side}" data-import-period="${side}" inputmode="numeric" maxlength="4" value="${esc(draft.periods[side])}"></label>`).join('')}<p>Revisa a qué año corresponde cada columna. Los valores se muestran en el orden anterior → actual.</p></div>${unitsChoice()}
         <p id="import-summary" class="import-summary" aria-live="polite"></p>
         <div class="import-table-scroll"><table class="import-table"><thead><tr><th scope="col">Incluir</th><th scope="col">Cuenta y clasificación</th><th scope="col" data-import-heading="previous"></th><th scope="col" data-import-heading="current"></th></tr></thead><tbody>${draft.rows.map(row => `<tr data-import-row="${esc(row.id)}"><td><input type="checkbox" data-edit="include"${row.include !== false ? ' checked' : ''} aria-label="Incluir ${esc(row.name)}"></td><td><input class="import-account-name" data-edit="name" value="${esc(row.name)}" aria-label="Nombre de la cuenta"><div class="import-row-tags">${row.sign === -1 ? '<span>Resta</span>' : ''}${row.role ? `<span>${esc(roles[row.role] || row.role)}</span>` : ''}${row.needsReview ? '<span class="import-review-tag">Revisar clasificación</span>' : ''}</div>${classify(row)}${row.needsReview ? `<label class="import-confirm"><input type="checkbox" data-edit="confirmed"${row.confirmed ? ' checked' : ''}>Revisé la clasificación de esta cuenta</label>` : ''}<p class="import-row-error" data-row-errors="${esc(row.id)}"></p></td>${SIDES.map(side => `<td><input class="import-number" data-edit="amount" data-import-side="${side}" inputmode="decimal" autocomplete="off" value="${esc(number(row.amounts?.[side]))}" aria-label="${esc(row.name)}, ${esc(draft.periods[side])}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -145,6 +146,7 @@
     workspace.addEventListener('click', event => {
       const action = event.target.closest('[data-import-action]')?.dataset.importAction;
       if (!action) return;
+      if (action === 'file') { modal.addEventListener('close', () => window.FinoraFiles.open(fresh ? { newCase: true } : { kind }), { once: true }); modal.close(); return; }
       if (action === 'cancel') modal.close();
       if (action === 'back') sourceView();
       if (action === 'analyze') analyze();
@@ -172,4 +174,3 @@
     open({ kind });
   });
 })();
-

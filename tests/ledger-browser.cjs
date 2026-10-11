@@ -20,6 +20,8 @@ const sample = 'Cuenta\t2024\t2025\nActivos circulantes\nEfectivo y bancos\t100\
       await page.waitForSelector('#import-summary');
     };
     await page.goto(base + '/modulos/estados-financieros/index.html');
+    await page.waitForFunction(() => window.FinoraCasos && window.FinoraStart);
+    if (await page.locator('#start-panel').isVisible()) await page.click('#start-blank');
     await page.waitForSelector('#balance-editor.ledger-table');
     assert.equal(await page.locator('#balance-editor thead th').count(), 4);
     assert.equal(await page.locator('#income-editor thead th').count(), 4);
@@ -40,6 +42,8 @@ const sample = 'Cuenta\t2024\t2025\nActivos circulantes\nEfectivo y bancos\t100\
     assert.equal(current.reported.assets.current, 200);
     assert.equal(await page.evaluate(() => FinoraCasos.analyzeBalance(FinoraCasos.store.active()).balanced.current), true);
     await page.reload();
+    await page.waitForFunction(() => window.FinoraCasos && window.FinoraStart);
+    if (await page.locator('#start-panel').isVisible()) await page.click('#start-blank');
     await page.waitForSelector('#balance-editor.ledger-table');
     assert.equal((await model()).balance.length, 2, 'Persiste al recargar');
     console.log('ok revisión, cancelación, aplicación, totales, guardado');
@@ -145,6 +149,3 @@ const sample = 'Cuenta\t2024\t2025\nActivos circulantes\nEfectivo y bancos\t100\
     console.log('ok modo claro/oscuro, móvil y sin errores de JavaScript');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
-
-
-

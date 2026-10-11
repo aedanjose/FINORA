@@ -19,7 +19,9 @@
   <script defer src="../../assets/js/case-bar.js"></script>
   <script defer src="../../assets/js/table-import.js"></script>
   <script defer src="../../assets/js/paste-import.js"></script>
+  <script defer src="../../assets/js/file-table.js"></script>
   <script defer src="import.js"></script>
+  <script defer src="file-import.js"></script>
   <script defer src="script.js"></script>
   <script defer src="start.js"></script>
   <script defer src="../../assets/js/motion.js"></script>
@@ -62,7 +64,7 @@
             <button class="tab-button" type="button" role="tab" id="tab-income" aria-controls="panel-income" aria-selected="false" tabindex="-1" data-statement="income">Estado de resultados</button>
           </div>
         </div>
-        <div class="import-toolbar"><p>Haz clic para editar · Enter para bajar · Pega varias filas para revisarlas</p><button type="button" class="button button-secondary" id="paste-excel"><i data-icon="file"></i>Pegar desde Excel</button></div>
+        <div class="import-toolbar"><p>Haz clic para editar · Enter para bajar · Pega varias filas para revisarlas</p><div class="file-toolbar-actions"><button type="button" class="button button-secondary" id="upload-excel"><i data-icon="file"></i>Subir Excel o CSV</button><button type="button" class="button button-secondary" id="paste-excel"><i data-icon="file"></i>Pegar desde Excel</button></div></div>
         <div class="panel-body editor-body">
           <div id="panel-balance" role="tabpanel" aria-labelledby="tab-balance">
             <div class="table-scroll"><table class="account-table editor-table" id="balance-editor"></table></div>
