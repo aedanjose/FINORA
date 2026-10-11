@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Finora: prototipo visual del Sistema de Análisis y Planeación Financiera.">
-  <title>Resumen financiero · Finora</title>
+  <meta name="description" content="Finora: captura del balance general y del estado de resultados, cuenta por cuenta, en dos períodos.">
+  <title>Estados financieros · Finora</title>
   <script src="../../assets/js/presentation.js"></script>
   <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/casos.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="../../assets/css/motion.css">
   <link rel="stylesheet" href="../../assets/css/presentation.css">
+  <script defer src="../../assets/js/finance.js"></script>
+  <script defer src="../../assets/js/casos.js"></script>
   <script defer src="../../assets/js/app.js"></script>
+  <script defer src="../../assets/js/case-bar.js"></script>
   <script defer src="script.js"></script>
   <script defer src="../../assets/js/motion.js"></script>
 </head>
@@ -23,70 +27,45 @@
     <main class="main-content" id="main">
       <div class="page-heading">
         <div>
-          <p class="eyebrow">UNA MIRADA A TU NEGOCIO</p>
-          <h1 class="page-title">Resumen financiero</h1>
-          <p class="page-description">Bienvenida, Martina <span class="greeting-dot">✦</span> Cada buena decisión empieza con claridad.</p>
+          <p class="eyebrow">La base de tu análisis</p>
+          <h1 class="page-title">Estados financieros</h1>
+          <p class="page-description">Captura cada cuenta del balance general y del estado de resultados en dos períodos. El análisis se actualiza solo.</p>
         </div>
         <div class="heading-actions">
-          <label class="period-picker"><i data-icon="calendar"></i><span class="sr-only">Período de ejemplo</span><select id="period-select" aria-label="Período de ejemplo"><option value="junio">Junio 2025</option><option value="mayo">Mayo 2025</option></select></label>
-          <button class="button button-primary" type="button" id="new-entry"><i data-icon="plus"></i>Nueva operación</button>
+          <button class="button button-secondary" type="button" id="capture-help"><i data-icon="help"></i>Cómo capturar</button>
+          <a class="button button-primary" href="../analisis-financiero/index.html"><i data-icon="chart"></i>Ver análisis</a>
         </div>
       </div>
-      <div class="overview-heading"><div class="company-caption"><span class="company-dot"></span>Comercial Horizonte<span class="company-separator">/</span><span id="period-label">Resumen de junio</span></div><span class="demo-label">Datos de ejemplo</span></div>
-      <section class="stats-grid" aria-label="Indicadores del período">
-        <article class="stat-card dark">
-          <div class="stat-topline"><h2 class="stat-label">Balance total</h2><span class="mini-icon"><i data-icon="wallet"></i></span></div>
-          <p class="stat-value"><span class="stat-currency">C$</span><span id="balance-value">124,850.40</span></p>
-          <p class="stat-caption"><span class="trend trend-positive"><i data-icon="arrow-up-right"></i><span id="balance-change">8.4%</span></span><span class="comparison-label">vs. mes anterior</span></p>
-          <span class="card-decoration" aria-hidden="true"></span>
-        </article>
-        <article class="stat-card">
-          <div class="stat-topline"><h2 class="stat-label">Ingresos</h2><span class="mini-icon income-icon"><i data-icon="arrow-down-right"></i></span></div>
-          <p class="stat-value"><span class="stat-currency">C$</span><span id="income-value">32,480.00</span></p>
-          <p class="stat-caption"><span class="trend trend-positive"><i data-icon="arrow-up-right"></i><span id="income-change">12.6%</span></span><span class="comparison-label">vs. mes anterior</span></p>
-        </article>
-        <article class="stat-card">
-          <div class="stat-topline"><h2 class="stat-label">Gastos</h2><span class="mini-icon expense-icon"><i data-icon="arrow-up-right"></i></span></div>
-          <p class="stat-value"><span class="stat-currency">C$</span><span id="expenses-value">18,260.80</span></p>
-          <p class="stat-caption"><span class="trend trend-positive"><i data-icon="arrow-down-right"></i><span id="expenses-change">3.2%</span></span><span class="comparison-label">menos que el mes anterior</span></p>
-        </article>
-        <article class="stat-card">
-          <div class="stat-topline"><h2 class="stat-label">Resultado neto</h2><span class="mini-icon result-icon"><i data-icon="trend"></i></span></div>
-          <p class="stat-value"><span class="stat-currency">C$</span><span id="result-value">14,219.20</span></p>
-          <p class="stat-caption"><span class="trend trend-positive"><i data-icon="arrow-up-right"></i><span id="result-change">42.5%</span></span><span class="comparison-label">vs. mes anterior</span></p>
-        </article>
-      </section>
-      <div class="two-column dashboard-main-grid">
-        <section class="panel cash-panel" aria-labelledby="cash-heading">
-          <div class="panel-header"><div><h2 class="panel-title" id="cash-heading">Tu dinero en movimiento</h2><p class="panel-subtitle">Una perspectiva de los últimos meses</p></div><div class="segmented-control" role="tablist" aria-label="Vista del gráfico"><button class="tab-button" type="button" role="tab" id="cash-tab" aria-controls="chart-panel" data-chart="cash" aria-selected="true">Flujo de caja</button><button class="tab-button" type="button" role="tab" id="activity-tab" aria-controls="chart-panel" data-chart="activity" aria-selected="false" tabindex="-1">Ingresos y gastos</button></div></div>
-          <div class="chart-summary"><div><div class="chart-amount" id="chart-amount">C$ 48,630.20</div><div class="chart-subtitle" id="chart-subtitle"><span class="chart-legend-dot"></span>Efectivo al cierre de junio</div></div><span class="chart-unit">Valores en C$</span></div>
-          <div class="chart-wrap" id="chart-panel" role="tabpanel" aria-labelledby="cash-tab"><svg class="cash-chart" id="cash-chart" viewBox="0 0 680 200" role="img" aria-label="Efectivo de enero a junio de 2025, datos ilustrativos"></svg></div>
-          <div class="chart-footer"><span><span class="live-dot"></span>Una vista más clara de tus finanzas</span><a class="link" href="../flujo-efectivo/index.html">Explorar flujo de efectivo<i data-icon="arrow-right"></i></a></div>
-        </section>
-        <section class="panel composition-panel" aria-labelledby="composition-heading">
-          <div class="panel-header"><div><h2 class="panel-title" id="composition-heading">Composición del balance</h2><p class="panel-subtitle">¿Dónde están tus recursos?</p></div><button class="icon-button" type="button" id="balance-info" aria-label="Explicar composición del balance"><i data-icon="info"></i></button></div>
-          <div class="composition-content"><div class="balance-donut" id="balance-donut" role="img" aria-label="Efectivo 39%, cuentas por cobrar 18%, inventario 23%, activos fijos 20%"><div class="donut-center"><span>Total activos</span><strong id="donut-total">124.9<span>mil</span></strong><span class="donut-currency">CÓRDOBAS</span></div></div><div class="composition-legend" id="composition-legend"></div></div>
-          <div class="balance-note"><span class="balance-check"><i data-icon="check"></i></span><div><strong>Todo en su lugar</strong><span>Activo = Pasivo + Patrimonio en este ejemplo</span></div></div>
-        </section>
-      </div>
-      <div class="two-column dashboard-bottom-grid">
-        <section class="panel movements-panel" aria-labelledby="movements-heading">
-          <div class="panel-header"><div><h2 class="panel-title" id="movements-heading">Movimientos recientes</h2><p class="panel-subtitle">Un vistazo a la actividad del mes</p></div><button class="button button-ghost button-small" type="button" id="view-movements">Ver todos<i data-icon="arrow-right"></i></button></div>
-          <div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Concepto</th><th scope="col">Fecha</th><th scope="col">Tipo</th><th scope="col" class="table-number">Monto</th></tr></thead><tbody id="movements-body"></tbody></table></div>
-          <div class="table-footnote"><span id="movement-count">Mostrando 3 de 5 movimientos ilustrativos</span><span class="table-footnote-dot">Solo lectura</span></div>
-        </section>
-        <section class="panel next-step-panel" aria-labelledby="next-heading">
-          <div class="panel-header"><div><h2 class="panel-title" id="next-heading">El siguiente paso</h2><p class="panel-subtitle">Convierte tus números en decisiones</p></div></div>
-          <div class="next-step-links"><a href="../analisis-financiero/index.html"><span class="shortcut-icon"><i data-icon="chart"></i></span><span><strong>Entiende tus resultados</strong><small>Análisis, razones y modelo DuPont</small></span><i data-icon="chevron-right"></i></a><a href="../planeacion-presupuestos/index.html"><span class="shortcut-icon"><i data-icon="calendar"></i></span><span><strong>Planea lo que viene</strong><small>Presupuestos y escenarios</small></span><i data-icon="chevron-right"></i></a><a href="../proforma/index.html"><span class="shortcut-icon"><i data-icon="file"></i></span><span><strong>Conecta la historia</strong><small>Estados proforma y reporte integrado</small></span><i data-icon="chevron-right"></i></a></div>
-          <div class="stage-note"><i data-icon="spark"></i><span>Primero el diseño. Después, los datos.</span></div>
-        </section>
-      </div>
-      <section class="panel statements-panel" aria-labelledby="statements-heading">
-        <div class="panel-header"><div><h2 class="panel-title" id="statements-heading">La base de tus finanzas</h2><p class="panel-subtitle">Estados financieros · Comercial Horizonte · <span id="statement-period">Junio 2025</span></p></div><div class="segmented-control" role="tablist" aria-label="Estado financiero"><button type="button" class="tab-button" role="tab" id="balance-tab" aria-selected="true" aria-controls="balance-statement" data-statement="balance">Balance general</button><button type="button" class="tab-button" role="tab" id="results-tab" aria-selected="false" aria-controls="results-statement" data-statement="results" tabindex="-1">Estado de resultados</button></div></div>
-        <div class="panel-body"><div id="balance-statement" role="tabpanel" aria-labelledby="balance-tab" class="statement-grid"></div><div id="results-statement" role="tabpanel" aria-labelledby="results-tab" hidden></div><div class="statement-disclaimer"><i data-icon="info"></i><span>Vista de ejemplo para revisar el diseño. La captura, la validación y los cálculos conectados se incorporarán en la siguiente etapa.</span></div></div>
+
+      <section class="panel case-bar" id="case-bar" aria-label="Empresa"></section>
+
+      <section class="stats-grid" id="statement-stats" aria-label="Totales del período actual"></section>
+
+      <div class="status-strip" id="status-strip" role="status" aria-live="polite"></div>
+
+      <section class="panel statements-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Cuentas de los estados financieros</h2>
+            <p class="panel-subtitle" id="statements-subtitle"></p>
+          </div>
+          <div class="segmented-control" role="tablist" aria-label="Estado financiero">
+            <button class="tab-button" type="button" role="tab" id="tab-balance" aria-controls="panel-balance" aria-selected="true" data-statement="balance">Balance general</button>
+            <button class="tab-button" type="button" role="tab" id="tab-income" aria-controls="panel-income" aria-selected="false" tabindex="-1" data-statement="income">Estado de resultados</button>
+          </div>
+        </div>
+        <div class="panel-body editor-body">
+          <div id="panel-balance" role="tabpanel" aria-labelledby="tab-balance">
+            <div class="table-scroll"><table class="account-table editor-table" id="balance-editor"></table></div>
+          </div>
+          <div id="panel-income" role="tabpanel" aria-labelledby="tab-income" hidden>
+            <div class="table-scroll"><table class="account-table editor-table" id="income-editor"></table></div>
+          </div>
+          <p class="table-footnote editor-footnote"><i data-icon="info"></i><span>Los importes se guardan en este navegador. Escribe <strong>0</strong> cuando una cuenta no exista en un período; deja la celda en blanco solo si no tienes el dato. Las contracuentas (depreciación acumulada) se capturan en positivo con efecto «Resta».</span></p>
+        </div>
       </section>
     </main>
-    <footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Prototipo de diseño · Datos de ejemplo</span></footer>
+    <footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Etapa 02 · Datos conectados</span></footer>
   </div>
   <div class="toast" id="toast" role="status"></div>
 </body>

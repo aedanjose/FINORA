@@ -35,7 +35,7 @@
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.file}</svg>`;
   const modules = [
-    { id: 'estados-financieros', label: 'Estados financieros', icon: 'grid', short: 'Resumen financiero' },
+    { id: 'estados-financieros', label: 'Estados financieros', icon: 'grid' },
     { id: 'analisis-financiero', label: 'Análisis financiero', icon: 'chart' },
     { id: 'punto-equilibrio', label: 'Punto de equilibrio y C-V-U', icon: 'trend' },
     { id: 'apalancamiento', label: 'Apalancamiento', icon: 'layers' },

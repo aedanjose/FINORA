@@ -1,0 +1,104 @@
+/* FINORA · Componentes de los casos: barra de empresa y tablas de estados por cuenta. */
+:root {
+  --surface: #fff;
+  --surface-soft: #fafbfd;
+  --row-section: #eef3fc;
+  --row-group: #f7f9fd;
+  --row-total: #f0f5ff;
+  --input-bg: #fff;
+  --input-border: #dfe5ef;
+  --negative: #c0392b;
+}
+@media screen {
+  html[data-presentation="on"] {
+    --surface: var(--presentation-panel);
+    --surface-soft: #1b314e;
+    --row-section: #284a75;
+    --row-group: #1f3958;
+    --row-total: #294e7a;
+    --input-bg: #10213a;
+    --input-border: #5f7a9c;
+    --negative: #ffadba;
+  }
+}
+
+/* Barra de empresa */
+.case-bar { padding: 16px 20px; margin-bottom: 22px; }
+.case-bar-main { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.case-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.case-select-field { min-width: 240px; flex: 0 1 320px; }
+.case-meta { display: flex; align-items: center; gap: 16px; color: var(--muted); font-size: 12px; padding-bottom: 9px; flex-wrap: wrap; }
+.case-meta > span { display: inline-flex; align-items: center; gap: 7px; }
+.case-meta .icon { width: 15px; height: 15px; }
+.case-actions { margin-left: auto; display: flex; gap: 8px; padding-bottom: 2px; }
+.case-details { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(90px, 1fr)); gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* Tablas por cuenta */
+.account-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.account-table th, .account-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+.account-table th:first-child, .account-table td:first-child { text-align: left; white-space: normal; min-width: 220px; }
+.account-table thead th { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--surface-soft); text-transform: uppercase; letter-spacing: .4px; position: sticky; top: 0; z-index: 1; }
+.account-table .row-section td { background: var(--row-section); color: var(--ink); font-weight: 700; letter-spacing: .6px; font-size: 11px; }
+.account-table .row-group td { background: var(--row-group); color: var(--ink); font-weight: 600; }
+.account-table .row-account td:first-child { padding-left: 28px; }
+.account-table .row-contra td:first-child { padding-left: 40px; color: var(--muted); }
+.account-table .row-net td { color: var(--muted); font-style: italic; }
+.account-table .row-net td:first-child { padding-left: 40px; }
+.account-table .row-subtotal td { font-weight: 650; border-top: 1px solid var(--muted); }
+.account-table .row-total td { background: var(--row-total); font-weight: 750; color: var(--ink); }
+.account-table .row-result td { font-weight: 700; background: var(--row-group); }
+.account-table .row-final td { background: var(--row-total); font-weight: 800; }
+.account-table .row-reported td { font-size: 11px; color: var(--muted); }
+.account-table .num-negative { color: var(--negative); }
+.account-table .muted { color: var(--muted); }
+.account-table .vertical { color: #56637b; }
+.table-scroll { width: 100%; overflow-x: auto; position: relative; }
+
+/* Celdas editables */
+.cell-input { width: 100%; min-height: 32px; padding: 5px 9px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--ink); font: inherit; }
+.cell-input.amount { text-align: right; min-width: 118px; font-variant-numeric: tabular-nums; }
+.cell-input.name { min-width: 200px; }
+.cell-input:focus { outline: 2px solid var(--blue); outline-offset: 0; border-color: transparent; }
+.cell-input.invalid { border-color: var(--negative); }
+.cell-select { min-height: 32px; padding: 4px 6px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 11px; }
+.group-input { font-weight: 600; max-width: 320px; }
+.row-actions { display: inline-flex; gap: 4px; }
+.mini-button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 4px 9px; border-radius: 6px; background: transparent; color: var(--blue); font-size: 11px; font-weight: 600; }
+.mini-button:hover { background: var(--blue-soft); }
+.mini-button .icon { width: 13px; height: 13px; }
+.icon-only { width: 30px; justify-content: center; padding: 4px; color: var(--muted); }
+.icon-only:hover { color: var(--negative); }
+
+/* Mensajes de estado */
+.status-strip { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.status-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--ink); }
+.status-chip .icon { width: 15px; height: 15px; }
+.status-chip.ok { border-color: #9fd9c3; color: var(--green); }
+.status-chip.bad { border-color: #f0b4bd; color: var(--negative); }
+.empty-panel { text-align: center; padding: 42px 24px; color: var(--muted); }
+.empty-panel h3 { color: var(--ink); margin: 0 0 8px; font-size: 15px; }
+
+@media screen {
+  html[data-presentation="on"] .account-table { font-size: 15px; }
+  html[data-presentation="on"] .account-table thead th { font-size: 12px; color: #e3edfc; background: #203b5e; }
+  html[data-presentation="on"] .account-table th, html[data-presentation="on"] .account-table td { padding-top: 12px; padding-bottom: 12px; color: #e0ebfb; }
+  html[data-presentation="on"] .account-table :is(.row-section, .row-group, .row-total, .row-result, .row-final) td { color: #fff; }
+  html[data-presentation="on"] .account-table :is(.row-net, .row-contra, .row-reported) td, html[data-presentation="on"] .account-table :is(.muted, .vertical) { color: #c2d6f0; }
+  html[data-presentation="on"] .account-table .num-negative { color: var(--negative); }
+  html[data-presentation="on"] :is(.cell-input, .cell-select) { font-size: 15px; }
+  html[data-presentation="on"] :is(.case-meta, .status-chip) { font-size: 14px; color: #d5e4f9; }
+  html[data-presentation="on"] .status-chip.ok { color: var(--green); border-color: #3e8a72; }
+  html[data-presentation="on"] .status-chip.bad { color: var(--negative); border-color: #a45a6b; }
+  html[data-presentation="on"] .mini-button { color: #a4ccff; font-size: 13px; }
+}
+@media (max-width: 900px) { .case-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .case-details .case-field:first-child { grid-column: 1 / -1; } }
+@media (max-width: 760px) {
+  .case-actions { margin-left: 0; }
+  .case-select-field { flex-basis: 100%; }
+  .account-table th, .account-table td { padding: 8px 10px; }
+  .account-table th:first-child, .account-table td:first-child { min-width: 170px; }
+}
+@media print {
+  .case-bar, .status-strip .mini-button, .no-print { display: none !important; }
+  .account-table thead th { position: static; }
+}
