@@ -4,7 +4,7 @@ Desde la carpeta del proyecto:
 
 ```powershell
 node tests/casos.test.cjs
-node --test tests/import.test.cjs tests/file-import.test.cjs tests/attached-import.test.cjs
+node --test tests/import.test.cjs tests/file-import.test.cjs tests/attached-import.test.cjs tests/workbook-import.test.cjs tests/cash-flow.test.cjs tests/break-even.test.cjs
 ```
 
 Estas pruebas no requieren internet ni dependencias externas. Cubren los casos de clase, los totales informados y el lector de tablas reutilizado de GestiCode.
