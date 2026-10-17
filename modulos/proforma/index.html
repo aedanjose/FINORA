@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="../../assets/css/presentation.css">
   <script defer src="../../assets/js/finance.js"></script>
   <script defer src="../../assets/js/casos.js"></script>
+  <script defer src="../../assets/js/budget.js"></script>
   <script defer src="../../assets/js/app.js"></script>
   <script defer src="../../assets/js/case-bar.js"></script>
   <script defer src="./script.js"></script>
@@ -47,23 +48,10 @@
               </div>
             </div>
             <div class="panel-body">
-              <label class="field">
-                <span class="field-label">Período proyectado</span>
-                <select class="select" id="report-period">
-                  <option value="next">Próximo año proyectado</option>
-                  <option value="sem">Próximo semestre</option>
-                </select>
-              </label>
-
-              <div class="field" style="margin-top: 14px;">
-                <label class="field-label" for="proforma-growth-slider">
-                  Crecimiento esperado en ventas: <strong id="growth-display">+8.0%</strong>
-                </label>
-                <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px;">
-                  <input type="range" id="proforma-growth-slider" min="-30" max="60" step="1" value="8" style="flex: 1; accent-color: var(--blue); cursor: pointer;">
-                  <input type="number" id="proforma-growth-input" min="-30" max="60" step="0.5" value="8" class="input" style="width: 78px; padding: 6px 8px; font-size: 12px; text-align: right;">
-                </div>
-              </div>
+              <p class="field-label">Período del presupuesto</p>
+              <p id="budget-period-summary">Pendiente</p>
+              <p class="scenario-description">Importa o ingresa las previsiones y sus políticas en el presupuesto de la empresa.</p>
+              <a class="button button-primary" href="../planeacion-presupuestos/index.html">Editar presupuesto</a>
 
               <span class="field-label report-type-label" id="report-type-label" style="margin-top: 16px;">Tipo de informe</span>
               <div class="report-types" role="tablist" aria-labelledby="report-type-label">
@@ -82,21 +70,21 @@
               <div class="report-divider"></div>
               <div class="scenario-title">
                 <span>Estado de los datos</span>
-                <span class="badge badge-blue" id="proforma-data-source">Conectado</span>
+                <span class="badge badge-blue" id="proforma-data-source">Pendiente</span>
               </div>
-              <p class="scenario-description" id="proforma-data-desc">Proyección calculada sobre los estados financieros reales de la empresa.</p>
+              <p class="scenario-description" id="proforma-data-desc">Pendiente de cargar el presupuesto de la empresa.</p>
 
               <div class="assumption-row">
-                <span>Crecimiento de ventas</span>
-                <strong id="summary-growth">+8%</strong>
+                <span>Meses presupuestados</span>
+                <strong id="summary-months">—</strong>
               </div>
               <div class="assumption-row">
                 <span>Costo de ventas est.</span>
-                <strong id="summary-cost-ratio">Proporcional</strong>
+                <strong id="summary-cost-ratio">—</strong>
               </div>
               <div class="assumption-row">
                 <span>Moneda de proyección</span>
-                <strong id="summary-currency">C$ NIO</strong>
+                <strong id="summary-currency">—</strong>
               </div>
 
               <div class="report-information">
@@ -128,11 +116,11 @@
             </div>
 
             <div class="paper-heading">
-              <p id="paper-company">COMERCIAL HORIZONTE</p>
+              <p id="paper-company">Empresa activa</p>
               <h2 id="paper-title">Estado de resultados proforma</h2>
               <div>
-                <span class="paper-period" id="paper-period">2026 (Proyectado)</span>
-                <span id="paper-currency">Expresado en córdobas (C$)</span>
+                <span class="paper-period" id="paper-period">Período pendiente</span>
+                <span id="paper-currency">Moneda de la empresa</span>
               </div>
             </div>
 
@@ -148,7 +136,7 @@
               </table>
               <div class="paper-highlight">
                 <span>Margen neto proyectado</span>
-                <strong id="proforma-net-margin">15.9%</strong>
+                <strong id="proforma-net-margin">—</strong>
                 <span class="paper-highlight-description" id="proforma-margin-desc">Rentabilidad neta sobre ventas proyectadas.</span>
               </div>
             </div>
@@ -165,17 +153,18 @@
               </table>
               <div class="paper-highlight balance-highlight" id="balance-highlight-box">
                 <i data-icon="check"></i>
-                <span id="balance-equation-msg">La ecuación contable proforma se encuentra equilibrada.</span>
+                <span id="balance-equation-msg">Pendiente de comprobar los datos.</span>
               </div>
             </div>
 
             <div class="paper-notes">
+              <div id="proforma-pending" role="status"></div>
               <strong>Bases y notas de la proyección</strong>
-              <p id="paper-notes-text">Cálculo proforma generado sobre la estructura contable histórica. Aplica método de porcentaje de ventas en partidas circulantes y mantiene deuda a largo plazo constante en ausencia de nuevos financiamientos programados.</p>
+              <p id="paper-notes-text">La proyección se calcula a partir del presupuesto mensual guardado.</p>
             </div>
             <div class="paper-footer">
               <span>Finora · Planeación y Proyecciones</span>
-              <span>Pág. 01</span>
+              <span>Informe presupuestario</span>
             </div>
           </div>
         </section>
