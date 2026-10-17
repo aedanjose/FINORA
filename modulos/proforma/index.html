@@ -1,15 +1,191 @@
 <!doctype html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Estados proforma · Finora</title><script src="../../assets/js/presentation.js"></script><link rel="stylesheet" href="../../assets/css/global.css"><link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="../../assets/css/motion.css"><link rel="stylesheet" href="../../assets/css/presentation.css"><script defer src="../../assets/js/app.js"></script><script defer src="./script.js"></script><script defer src="../../assets/js/motion.js"></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estados proforma · Finora</title>
+  <script src="../../assets/js/presentation.js"></script>
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/casos.css">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="../../assets/css/motion.css">
+  <link rel="stylesheet" href="../../assets/css/presentation.css">
+  <script defer src="../../assets/js/finance.js"></script>
+  <script defer src="../../assets/js/casos.js"></script>
+  <script defer src="../../assets/js/app.js"></script>
+  <script defer src="../../assets/js/case-bar.js"></script>
+  <script defer src="./script.js"></script>
+  <script defer src="../../assets/js/motion.js"></script>
+</head>
 <body data-page="proforma" data-base="../../">
-<a class="skip-link" href="#main">Saltar al contenido</a><div class="sidebar-overlay" data-close-menu></div><aside class="sidebar" id="sidebar" aria-label="Navegación principal"></aside><div class="workspace"><header class="topbar" id="topbar"></header><main class="main-content" id="main">
-  <div class="page-heading"><div><div class="eyebrow">UNA VISTA HACIA ADELANTE</div><h1 class="page-title">Estados proforma</h1><p class="page-description">Visualiza cómo podrían verse los resultados de tu próximo periodo.</p></div><div class="heading-actions"><span class="demo-label">Ejemplo ilustrativo</span><button class="button button-primary" id="print-report" type="button"><i data-icon="download"></i> Imprimir / guardar PDF</button></div></div>
-  <div class="proforma-layout">
-    <aside class="report-controls" aria-label="Opciones del informe"><section class="panel"><div class="panel-header"><div><h2 class="panel-title">Configura tu vista</h2><p class="panel-subtitle">Explora los informes de ejemplo</p></div></div><div class="panel-body"><label class="field"><span class="field-label">Periodo proyectado</span><select class="select" id="report-period"><option value="2025-07">Julio 2025</option><option value="2025-08">Agosto 2025</option></select></label><span class="field-label report-type-label" id="report-type-label">Tipo de informe</span><div class="report-types" role="tablist" aria-labelledby="report-type-label"><button class="report-type active" id="tab-income" type="button" role="tab" aria-selected="true" aria-controls="report-income" data-report="income"><span class="report-type-icon"><i data-icon="chart"></i></span><span><strong>Estado de resultados</strong><small>Ingresos, costos y utilidad</small></span><i data-icon="chevron-right"></i></button><button class="report-type" id="tab-balance" type="button" role="tab" aria-selected="false" aria-controls="report-balance" tabindex="-1" data-report="balance"><span class="report-type-icon"><i data-icon="scale"></i></span><span><strong>Balance general</strong><small>Activos, pasivos y patrimonio</small></span><i data-icon="chevron-right"></i></button></div><div class="report-divider"></div><div class="scenario-title"><span>Escenario</span><span class="badge badge-blue">Base</span></div><p class="scenario-description">Supuestos estables de operación para explorar la presentación del informe.</p><div class="assumption-row"><span>Crecimiento en ventas</span><strong>+8%</strong></div><div class="assumption-row"><span>Variación en costos</span><strong>+5%</strong></div><div class="assumption-row"><span>Moneda</span><strong>C$ NIO</strong></div><div class="report-information"><i data-icon="info"></i><p>Estos supuestos acompañan el diseño. No se aplican cálculos ni se conectan datos de otros módulos.</p></div></div></section><div class="report-help"><i data-icon="file"></i><div><strong>Un informe para compartir</strong><p>Usa la vista de impresión de tu navegador y elige «Guardar como PDF».</p></div></div></aside>
-    <section class="report-preview"><div class="preview-toolbar"><span><span class="preview-dot"></span> Vista previa del documento</span><span>A4 · Vertical</span></div><div class="report-paper"><div class="paper-brand"><span class="paper-logo">f<span>.</span></span><span class="paper-wordmark">finora<span>FINANZAS CON PERSPECTIVA</span></span><span class="paper-status">PROYECCIÓN ILUSTRATIVA</span></div><div class="paper-heading"><p>COMERCIAL HORIZONTE</p><h2 id="paper-title">Estado de resultados proforma</h2><div><span class="paper-period">Julio 2025</span><span>Expresado en córdobas (C$)</span></div></div>
-      <div id="report-income" role="tabpanel" aria-labelledby="tab-income"><table class="statement-table"><caption class="sr-only">Estado de resultados proforma ilustrativo</caption><thead><tr><th scope="col">Concepto</th><th scope="col">Proyección</th></tr></thead><tbody><tr class="statement-group"><th colspan="2" scope="colgroup">INGRESOS OPERATIVOS</th></tr><tr><td>Ventas de productos</td><td>C$ 148,500.00</td></tr><tr><td>Ingresos por servicios</td><td>C$ 36,500.00</td></tr><tr class="statement-subtotal"><th scope="row">Ingresos totales</th><td>C$ 185,000.00</td></tr><tr class="statement-group"><th colspan="2" scope="colgroup">COSTOS Y GASTOS</th></tr><tr><td>Costo de ventas</td><td>C$ 92,500.00</td></tr><tr class="statement-subtotal"><th scope="row">Utilidad bruta</th><td>C$ 92,500.00</td></tr><tr><td>Gastos administrativos</td><td>C$ 32,000.00</td></tr><tr><td>Gastos de venta</td><td>C$ 15,500.00</td></tr><tr class="statement-subtotal"><th scope="row">Utilidad operativa</th><td>C$ 45,000.00</td></tr><tr><td>Gastos financieros</td><td>C$ 3,000.00</td></tr><tr><td>Impuestos estimados de ejemplo</td><td>C$ 12,600.00</td></tr><tr class="statement-total"><th scope="row">Utilidad neta proyectada</th><td>C$ 29,400.00</td></tr></tbody></table><div class="paper-highlight"><span>Margen neto proyectado</span><strong>15.9%</strong><span class="paper-highlight-description">De cada C$ 100 en ingresos, C$ 15.90 representarían utilidad en este ejemplo.</span></div></div>
-      <div id="report-balance" role="tabpanel" aria-labelledby="tab-balance" hidden><table class="statement-table"><caption class="sr-only">Balance general proforma ilustrativo</caption><thead><tr><th scope="col">Concepto</th><th scope="col">Proyección</th></tr></thead><tbody><tr class="statement-group"><th colspan="2" scope="colgroup">ACTIVOS</th></tr><tr><td>Efectivo y equivalentes</td><td>C$ 95,000.00</td></tr><tr><td>Cuentas por cobrar</td><td>C$ 68,000.00</td></tr><tr><td>Inventarios</td><td>C$ 112,000.00</td></tr><tr><td>Propiedad y equipo, neto</td><td>C$ 225,000.00</td></tr><tr class="statement-subtotal"><th scope="row">Total de activos</th><td>C$ 500,000.00</td></tr><tr class="statement-group"><th colspan="2" scope="colgroup">PASIVOS</th></tr><tr><td>Cuentas por pagar</td><td>C$ 75,000.00</td></tr><tr><td>Obligaciones financieras</td><td>C$ 125,000.00</td></tr><tr class="statement-subtotal"><th scope="row">Total de pasivos</th><td>C$ 200,000.00</td></tr><tr class="statement-group"><th colspan="2" scope="colgroup">PATRIMONIO</th></tr><tr><td>Capital y resultados acumulados</td><td>C$ 270,600.00</td></tr><tr><td>Resultado proyectado del periodo</td><td>C$ 29,400.00</td></tr><tr class="statement-subtotal"><th scope="row">Total de patrimonio</th><td>C$ 300,000.00</td></tr><tr class="statement-total"><th scope="row">Total de pasivos y patrimonio</th><td>C$ 500,000.00</td></tr></tbody></table><div class="paper-highlight balance-highlight"><i data-icon="check"></i><span>La ecuación contable del ejemplo está equilibrada.</span></div></div>
-      <div class="paper-notes"><strong>Notas de la proyección</strong><p>Documento de demostración. Los importes y supuestos son ficticios y permanecen iguales al cambiar el periodo. No representan estimaciones fiscales ni un pronóstico financiero real.</p></div><div class="paper-footer"><span>Finora · Planeación financiera</span><span>01</span></div></div></section>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="sidebar-overlay" data-close-menu></div>
+  <aside class="sidebar" id="sidebar" aria-label="Navegación principal"></aside>
+  <div class="workspace">
+    <header class="topbar" id="topbar"></header>
+    <main class="main-content" id="main">
+      <div class="page-heading">
+        <div>
+          <div class="eyebrow">UNA VISTA HACIA ADELANTE</div>
+          <h1 class="page-title">Estados proforma</h1>
+          <p class="page-description">Proyecta cómo se verán los resultados y la posición financiera de tu próximo período bajo supuestos controlados.</p>
+        </div>
+        <div class="heading-actions">
+          <button class="button button-primary" id="print-report" type="button"><i data-icon="download"></i> Imprimir / guardar PDF</button>
+        </div>
+      </div>
+
+      <section class="panel case-bar" id="case-bar" aria-label="Empresa"></section>
+
+      <div class="proforma-layout">
+        <aside class="report-controls" aria-label="Opciones del informe">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Configura tu proyección</h2>
+                <p class="panel-subtitle">Supuestos sobre la empresa activa</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <label class="field">
+                <span class="field-label">Período proyectado</span>
+                <select class="select" id="report-period">
+                  <option value="next">Próximo año proyectado</option>
+                  <option value="sem">Próximo semestre</option>
+                </select>
+              </label>
+
+              <div class="field" style="margin-top: 14px;">
+                <label class="field-label" for="proforma-growth-slider">
+                  Crecimiento esperado en ventas: <strong id="growth-display">+8.0%</strong>
+                </label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px;">
+                  <input type="range" id="proforma-growth-slider" min="-30" max="60" step="1" value="8" style="flex: 1; accent-color: var(--blue); cursor: pointer;">
+                  <input type="number" id="proforma-growth-input" min="-30" max="60" step="0.5" value="8" class="input" style="width: 78px; padding: 6px 8px; font-size: 12px; text-align: right;">
+                </div>
+              </div>
+
+              <span class="field-label report-type-label" id="report-type-label" style="margin-top: 16px;">Tipo de informe</span>
+              <div class="report-types" role="tablist" aria-labelledby="report-type-label">
+                <button class="report-type active" id="tab-income" type="button" role="tab" aria-selected="true" aria-controls="report-income" data-report="income">
+                  <span class="report-type-icon"><i data-icon="chart"></i></span>
+                  <span><strong>Estado de resultados</strong><small>Ingresos, costos y utilidad</small></span>
+                  <i data-icon="chevron-right"></i>
+                </button>
+                <button class="report-type" id="tab-balance" type="button" role="tab" aria-selected="false" aria-controls="report-balance" tabindex="-1" data-report="balance">
+                  <span class="report-type-icon"><i data-icon="scale"></i></span>
+                  <span><strong>Balance general</strong><small>Activos, pasivos y patrimonio</small></span>
+                  <i data-icon="chevron-right"></i>
+                </button>
+              </div>
+
+              <div class="report-divider"></div>
+              <div class="scenario-title">
+                <span>Estado de los datos</span>
+                <span class="badge badge-blue" id="proforma-data-source">Conectado</span>
+              </div>
+              <p class="scenario-description" id="proforma-data-desc">Proyección calculada sobre los estados financieros reales de la empresa.</p>
+
+              <div class="assumption-row">
+                <span>Crecimiento de ventas</span>
+                <strong id="summary-growth">+8%</strong>
+              </div>
+              <div class="assumption-row">
+                <span>Costo de ventas est.</span>
+                <strong id="summary-cost-ratio">Proporcional</strong>
+              </div>
+              <div class="assumption-row">
+                <span>Moneda de proyección</span>
+                <strong id="summary-currency">C$ NIO</strong>
+              </div>
+
+              <div class="report-information">
+                <i data-icon="info"></i>
+                <p id="proforma-footnote">Los datos parten del período actual. La utilidad neta proyectada se acumula en el patrimonio del balance proforma.</p>
+              </div>
+            </div>
+          </section>
+
+          <div class="report-help">
+            <i data-icon="file"></i>
+            <div>
+              <strong>Un informe para compartir</strong>
+              <p>Usa la vista de impresión de tu navegador para exportar en formato ejecutivo o PDF.</p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="report-preview">
+          <div class="preview-toolbar">
+            <span><span class="preview-dot"></span> Vista previa del documento</span>
+            <span>A4 · Vertical</span>
+          </div>
+          <div class="report-paper">
+            <div class="paper-brand">
+              <span class="paper-logo">f<span>.</span></span>
+              <span class="paper-wordmark">finora<span>FINANZAS CON PERSPECTIVA</span></span>
+              <span class="paper-status" id="paper-badge-status">PROYECCIÓN PROFORMA</span>
+            </div>
+
+            <div class="paper-heading">
+              <p id="paper-company">COMERCIAL HORIZONTE</p>
+              <h2 id="paper-title">Estado de resultados proforma</h2>
+              <div>
+                <span class="paper-period" id="paper-period">2026 (Proyectado)</span>
+                <span id="paper-currency">Expresado en córdobas (C$)</span>
+              </div>
+            </div>
+
+            <div id="report-income" role="tabpanel" aria-labelledby="tab-income">
+              <table class="statement-table">
+                <caption class="sr-only">Estado de resultados proforma</caption>
+                <thead>
+                  <tr><th scope="col">Concepto</th><th scope="col" style="text-align: right;">Proyección Proforma</th></tr>
+                </thead>
+                <tbody id="income-proforma-body">
+                  <!-- Generated dynamically -->
+                </tbody>
+              </table>
+              <div class="paper-highlight">
+                <span>Margen neto proyectado</span>
+                <strong id="proforma-net-margin">15.9%</strong>
+                <span class="paper-highlight-description" id="proforma-margin-desc">Rentabilidad neta sobre ventas proyectadas.</span>
+              </div>
+            </div>
+
+            <div id="report-balance" role="tabpanel" aria-labelledby="tab-balance" hidden>
+              <table class="statement-table">
+                <caption class="sr-only">Balance general proforma</caption>
+                <thead>
+                  <tr><th scope="col">Concepto</th><th scope="col" style="text-align: right;">Proyección Proforma</th></tr>
+                </thead>
+                <tbody id="balance-proforma-body">
+                  <!-- Generated dynamically -->
+                </tbody>
+              </table>
+              <div class="paper-highlight balance-highlight" id="balance-highlight-box">
+                <i data-icon="check"></i>
+                <span id="balance-equation-msg">La ecuación contable proforma se encuentra equilibrada.</span>
+              </div>
+            </div>
+
+            <div class="paper-notes">
+              <strong>Bases y notas de la proyección</strong>
+              <p id="paper-notes-text">Cálculo proforma generado sobre la estructura contable histórica. Aplica método de porcentaje de ventas en partidas circulantes y mantiene deuda a largo plazo constante en ausencia de nuevos financiamientos programados.</p>
+            </div>
+            <div class="paper-footer">
+              <span>Finora · Planeación y Proyecciones</span>
+              <span>Pág. 01</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer class="page-footer">
+      <span>Finora · Sistema de Análisis y Planeación Financiera</span>
+      <span>Proforma conectada · Modelado de escenarios</span>
+    </footer>
   </div>
-</main><footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Prototipo de diseño · Datos de ejemplo</span></footer></div><div class="toast" id="toast" role="status"></div>
-</body></html>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>

@@ -54,7 +54,7 @@
   const navItem = item => `<a class="nav-item${item.id === current.id ? ' active' : ''}" href="${moduleLink(item)}"${item.id === current.id ? ' aria-current="page"' : ''}>${icon(item.icon)}<span>${item.label}</span>${item.id === current.id ? '<span class="nav-active-dot"></span>' : ''}</a>`;
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = `<a class="brand" href="${base}index.html" aria-label="Finora, inicio"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h14M5 12h10" stroke="white" stroke-width="2.8" stroke-linecap="round"/><path d="m14 19 5-5" stroke="#94BCFF" stroke-width="2.8" stroke-linecap="round"/></svg></span><span class="brand-name">finora<span class="brand-dot">.</span></span></a><div class="brand-caption">CLARIDAD PARA DECIDIR</div><div class="nav-label">Gestión financiera</div><nav class="nav-list" aria-label="Módulos financieros">${modules.slice(0, 8).map(navItem).join('')}</nav><div class="nav-divider"></div><div class="nav-label">Complementarios</div><nav class="nav-list" aria-label="Módulos complementarios">${modules.slice(8).map(navItem).join('')}</nav><div class="sidebar-bottom"><div class="workspace-card"><div class="workspace-card-title">${icon('spark')}Tu espacio de aprendizaje</div><p>De los datos a las decisiones,<br>un módulo a la vez.</p><button type="button" id="about-project">Conocer el proyecto ${icon('arrow-right')}</button></div><div class="sidebar-profile"><span class="avatar">M</span><div><div class="profile-name">Martina</div><div class="profile-role">Perfil de demostración</div></div><button class="profile-more" type="button" id="profile-info" aria-label="Información del perfil">${icon('more')}</button></div></div>`;
-  document.getElementById('topbar').innerHTML = `<button class="icon-button menu-toggle" type="button" aria-label="Abrir menú de navegación" aria-controls="sidebar" aria-expanded="false">${icon('menu')}</button><div class="breadcrumb"><span class="breadcrumb-root">Mi espacio</span><span class="breadcrumb-root">${icon('chevron-right')}</span><span class="breadcrumb-current">${current.short || current.label}</span></div><div class="topbar-actions"><button class="global-search" type="button" id="open-search" aria-label="Buscar módulo">${icon('search')}<span>Buscar un módulo...</span><kbd>Ctrl K</kbd></button><span class="topbar-separator"></span><button class="icon-button notification-button" type="button" id="project-status" aria-label="Estado del proyecto">${icon('bell')}</button><button class="avatar top-avatar" type="button" id="top-profile" aria-label="Perfil de demostración Martina">M</button></div>`;
+  document.getElementById('topbar').innerHTML = `<button class="icon-button menu-toggle" type="button" aria-label="Abrir menú de navegación" aria-controls="sidebar" aria-expanded="false">${icon('menu')}</button><div class="breadcrumb"><span class="breadcrumb-root">Mi espacio</span><span class="breadcrumb-root">${icon('chevron-right')}</span><span class="breadcrumb-current">${current.short || current.label}</span></div><div class="topbar-actions"><button class="topbar-currency-btn" type="button" id="topbar-currency" title="Cambiar moneda de trabajo" aria-label="Cambiar moneda de trabajo"><span class="currency-tag">Moneda</span><strong id="topbar-currency-val">C$</strong>${icon('chevron-down')}</button><button class="global-search" type="button" id="open-search" aria-label="Buscar módulo">${icon('search')}<span>Buscar un módulo...</span><kbd>Ctrl K</kbd></button><span class="topbar-separator"></span><button class="icon-button notification-button" type="button" id="project-status" aria-label="Estado del proyecto">${icon('bell')}</button><button class="avatar top-avatar" type="button" id="top-profile" aria-label="Perfil de demostración Martina">M</button></div>`;
   const hydrateIcons = (parent = document) => parent.querySelectorAll('[data-icon]').forEach(item => { item.innerHTML = icon(item.dataset.icon); item.setAttribute('aria-hidden', 'true'); });
   let toastTimer;
   function toast(message) {
@@ -65,6 +65,72 @@
     el.classList.add('visible');
     toastTimer = setTimeout(() => el.classList.remove('visible'), 5000);
   }
+  function getCurrentCurrency() {
+    if (window.FinoraCasos?.store) {
+      const active = window.FinoraCasos.store.active?.();
+      if (active?.currency) return active.currency;
+    }
+    return localStorage.getItem('finora:global_currency') || 'C$';
+  }
+  function syncCurrencyButton() {
+    const el = document.getElementById('topbar-currency-val');
+    if (el) el.textContent = getCurrentCurrency();
+  }
+  function openCurrencyDialog() {
+    const curr = getCurrentCurrency();
+    const presets = [
+      { code: 'C$', name: 'Córdoba nicaragüense' },
+      { code: 'U$', name: 'Dólar (U$)' },
+      { code: '$', name: 'Dólar / Peso ($)' },
+      { code: '€', name: 'Euro (€)' },
+      { code: 'MXN $', name: 'Peso mexicano' },
+      { code: 'Q', name: 'Quetzal guatemalteco' },
+      { code: 'L', name: 'Lempira hondureña' },
+      { code: '₡', name: 'Colón costarricense' }
+    ];
+    const gridHtml = presets.map(p => `
+      <button type="button" class="button ${p.code === curr ? 'button-primary' : 'button-secondary'} currency-item-btn" data-currency="${p.code}" style="justify-content: flex-start; text-align: left; padding: 10px 14px;">
+        <strong style="min-width: 48px;">${p.code}</strong>
+        <span style="font-size: 11.5px; opacity: 0.85;">${p.name}</span>
+      </button>
+    `).join('');
+    const content = `
+      <p style="margin-top: 0; color: var(--muted); font-size: 13px;">Selecciona la moneda principal que se mostrará en los estados, análisis y reportes:</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 9px; margin-bottom: 18px;">
+        ${gridHtml}
+      </div>
+      <form id="custom-curr-form" style="border-top: 1px solid var(--border); padding-top: 15px; display: flex; gap: 12px; align-items: flex-end;">
+        <label class="field" style="flex: 1;">
+          <span class="field-label">Otra moneda o símbolo personalizado</span>
+          <input class="input" id="custom-curr-input" placeholder="Ej. S/, R$, CHF, COP" maxlength="8" value="${curr}">
+        </label>
+        <button type="submit" class="button button-primary">Guardar moneda</button>
+      </form>
+    `;
+    const modal = openDialog('Moneda de trabajo', content);
+    const apply = (val) => {
+      const trimmed = String(val || '').trim();
+      if (!trimmed) return;
+      localStorage.setItem('finora:global_currency', trimmed);
+      if (window.FinoraCasos?.store) {
+        const active = window.FinoraCasos.store.active?.();
+        if (active) {
+          active.currency = trimmed;
+          window.FinoraCasos.store.save(active);
+        }
+      }
+      syncCurrencyButton();
+      modal.close();
+      toast(`Moneda establecida en ${trimmed}`);
+    };
+    modal.querySelectorAll('.currency-item-btn').forEach(btn => btn.addEventListener('click', () => apply(btn.dataset.currency)));
+    modal.querySelector('#custom-curr-form')?.addEventListener('submit', e => {
+      e.preventDefault();
+      apply(modal.querySelector('#custom-curr-input').value);
+    });
+  }
+  document.getElementById('topbar-currency')?.addEventListener('click', openCurrencyDialog);
+  setTimeout(syncCurrencyButton, 50);
   let returnFocus;
   const dialog = document.createElement('dialog');
   dialog.className = 'detail-dialog';
@@ -120,6 +186,11 @@
   const syncSidebar = () => { sidebar.inert = mobileQuery.matches && !document.body.classList.contains('sidebar-open'); if (!mobileQuery.matches) setMenu(false); };
   mobileQuery.addEventListener('change', syncSidebar);
   syncSidebar();
-  hydrateIcons();
-  window.Finora = Object.freeze({ icon, toast, openDialog, hydrateIcons });
+  window.addEventListener('load', () => {
+    if (window.FinoraCasos?.store) {
+      window.FinoraCasos.store.subscribe(syncCurrencyButton);
+      syncCurrencyButton();
+    }
+  });
+  window.Finora = Object.freeze({ icon, toast, openDialog, hydrateIcons, syncCurrency: syncCurrencyButton, openCurrencyDialog });
 })();
