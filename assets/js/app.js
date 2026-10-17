@@ -192,5 +192,7 @@
       syncCurrencyButton();
     }
   });
+  // Dibuja los iconos escritos en el HTML (<i data-icon="…">). Los módulos que generan contenido después lo vuelven a llamar.
+  hydrateIcons();
   window.Finora = Object.freeze({ icon, toast, openDialog, hydrateIcons, syncCurrency: syncCurrencyButton, openCurrencyDialog });
 })();
