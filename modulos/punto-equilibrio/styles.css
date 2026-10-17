@@ -79,3 +79,19 @@
 }
 @media (max-width: 1100px) { .be-layout, .be-layout-even { grid-template-columns: 1fr; } }
 @media print { .be-toggles button[aria-pressed="false"], #be-reset, .be-period { display: none !important; } .be-toggle[aria-pressed="true"] { background: none; color: inherit; padding: 0; } }
+
+/* Avisos que llevan a la cuenta pendiente de revisar. */
+.be-review-notice { display: grid; gap: 8px; max-width: 100%; min-width: 0; }
+.be-review-notice p { display: flex; align-items: flex-start; gap: 8px; margin: 0; }
+.be-review-notice p .icon { flex-shrink: 0; margin-top: 2px; }
+.be-review-notice ul { display: grid; gap: 4px; list-style: none; padding: 0; margin: 0; min-width: 0; }
+.be-account-link { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 20px; width: 100%; min-height: 36px; padding: 6px 8px; border-radius: 5px; background: transparent; color: inherit; font: inherit; text-align: left; }
+.be-account-link > span:first-child { font-weight: 650; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.be-link-action { font-size: .9em; white-space: nowrap; }
+.be-account-link:hover { background: var(--surface-soft); }
+.be-account-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.be-cost-target { scroll-margin-block: 100px; }
+.be-cost-target td { background: var(--blue-soft); border-top: 2px solid var(--be-revenue); border-bottom: 2px solid var(--be-revenue); }
+.be-cost-target td:first-child { box-shadow: inset 3px 0 var(--be-revenue); }
+@media screen { html[data-presentation="on"] .be-cost-target td { background: #203b5b; } }
+@media print { .be-link-action { display: none; } .be-account-link > span:first-child { text-decoration: none; } .be-cost-target td { background: transparent; border-color: var(--border); box-shadow: none; } }

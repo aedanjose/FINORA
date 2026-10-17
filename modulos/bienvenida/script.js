@@ -1,7 +1,7 @@
 /* Sólo controla la bienvenida; no almacena ni modifica datos financieros. */
 (() => {
   'use strict';
-  const destination = new URL('../estados-financieros/index.html', window.location.href).href;
+  const destination = new URL('../dashboard/index.html', window.location.href).href;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const replayButton = document.getElementById('replay-intro');
   const motionNote = document.getElementById('motion-note');

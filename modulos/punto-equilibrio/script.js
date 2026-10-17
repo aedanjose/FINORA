@@ -12,6 +12,8 @@
   // Ejes abreviados con el mismo formato numérico de Finora (punto decimal): 187.5 mil, 1.2 M.
   const compact = v => { const a = Math.abs(v), n = (x, u) => `${+(x).toFixed(1)} ${u}`.replace(/^(-?\d+)\.0 /, '$1 '); return a >= 1e6 ? n(v / 1e6, 'M') : a >= 1e3 ? n(v / 1e3, 'mil') : fmt.plain(v, 0); };
 
+  const costRowId = id => `be-cost-${encodeURIComponent(id)}`;
+
   // ---------- Gráfica costo-volumen-utilidad ----------
   function niceCeil(v) { if (!(v > 0)) return 1; const p = 10 ** Math.floor(Math.log10(v)); return Math.ceil(v / p * 2) / 2 * p; }
   function chart(r, c) {
@@ -62,7 +64,7 @@
         const amount = l.amounts[side];
         const toggle = ['variable', 'fixed'].map(b => `<button type="button" class="be-toggle" data-behavior="${b}" data-account="${esc(l.id)}" aria-pressed="${l.behavior === b}">${b === 'fixed' ? 'Fijo' : 'Variable'}</button>`).join('');
         const origin = l.chosen ? '<span class="be-origin chosen">Elegido</span>' : `<span class="be-origin${l.doubtful ? ' doubtful' : ''}" title="${esc(l.proposal.reason)}">${l.doubtful ? 'Revisar' : 'Propuesto'}</span>`;
-        return `<tr class="row-account${l.doubtful ? ' be-doubtful' : ''}"><td>${esc(l.name)}${!l.chosen ? `<span class="be-reason">${esc(l.proposal.reason)}</span>` : ''}</td><td>${amount === null ? '—' : fmt.number(l.sign * amount)}</td><td><span class="be-toggles" role="group" aria-label="Comportamiento de ${esc(l.name)}">${toggle}</span></td><td>${origin}</td></tr>`;
+        return `<tr id="${esc(costRowId(l.id))}" class="row-account${l.doubtful ? ' be-doubtful' : ''}"><td>${esc(l.name)}${!l.chosen ? `<span class="be-reason">${esc(l.proposal.reason)}</span>` : ''}</td><td>${amount === null ? '—' : fmt.number(l.sign * amount)}</td><td><span class="be-toggles" role="group" aria-label="Comportamiento de ${esc(l.name)}">${toggle}</span></td><td>${origin}</td></tr>`;
       }).join('');
     };
     const totals = r.ok ? `<tr class="row-subtotal"><td>Costos variables</td><td>${fmt.number(r.variableCosts)}</td><td colspan="2"></td></tr><tr class="row-subtotal"><td>Costos fijos</td><td>${fmt.number(r.fixedCosts)}</td><td colspan="2"></td></tr>` : '';
@@ -122,7 +124,11 @@
     }
     const periodSwitch = both.previous.ok && both.current.ok
       ? `<div class="segmented-control be-period" role="group" aria-label="Año">${C.SIDES.map(s => `<button type="button" class="tab-button" data-side="${s}" aria-pressed="${s === side}" aria-selected="${s === side}">${esc(c.periods[s])}</button>`).join('')}</div>` : '';
-    const doubts = r.doubtful ? `<div class="status-strip"><span class="status-chip bad"><i data-icon="info"></i>${r.doubtful} ${r.doubtful === 1 ? 'costo tiene' : 'costos tienen'} una clasificación dudosa. Revísalos en la tabla de costos.</span></div>` : '';
+    const doubtfulLines = B.costLines(c).filter(l => l.doubtful && Number.isFinite(l.amounts[side]));
+    const doubts = doubtfulLines.length ? `<div class="status-strip"><div class="status-chip bad be-review-notice">
+      <p><i data-icon="info"></i>${doubtfulLines.length === 1 ? 'Esta cuenta tiene una clasificación dudosa:' : 'Estas cuentas tienen una clasificación dudosa:'}</p>
+      <ul>${doubtfulLines.map(l => `<li><button type="button" class="be-account-link" data-cost-target="${esc(costRowId(l.id))}"><span>${esc(l.name)}</span><span class="be-link-action">Ir a la cuenta <span aria-hidden="true">↓</span></span></button></li>`).join('')}</ul>
+    </div></div>` : '';
     content.innerHTML = `<div class="be-toolbar"><span class="be-caption">${esc(c.name)} · ${esc(r.period)} · Cifras en ${esc(fmt.unit(c) || 'unidades')}</span>${periodSwitch}</div>
       ${doubts}${stats(r, c)}
       <div class="be-layout">${panel('Costo, volumen y utilidad', 'Donde la línea de ingresos cruza la de costos totales, la utilidad operativa es cero.', `<div class="panel-body">${chart(r, c)}</div>`)}${formula(r, c)}</div>
@@ -134,6 +140,14 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button || !$('be-content').contains(button)) return;
+    if (button.dataset.costTarget) {
+      const row = $(button.dataset.costTarget); if (!row) return;
+      document.querySelectorAll('.be-cost-target').forEach(el => el.classList.remove('be-cost-target'));
+      row.classList.add('be-cost-target');
+      row.querySelector('.be-toggle[aria-pressed="true"]')?.focus({ preventScroll: true });
+      row.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center', inline: 'nearest' });
+      return;
+    }
     if (button.dataset.side) { side = button.dataset.side; render(); return; }
     if (button.dataset.behavior) {
       const c = C.store.active(), a = c.income.find(x => x.id === button.dataset.account); if (!a) return;

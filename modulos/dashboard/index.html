@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Resumen financiero ejecutivo de Finora: resultados, liquidez, financiamiento y escenarios de proyección con los datos de tu empresa.">
+  <title>Resumen general · Finora</title>
+  <script src="../../assets/js/presentation.js"></script>
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/casos.css">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="../../assets/css/motion.css">
+  <link rel="stylesheet" href="../../assets/css/presentation.css">
+  <script defer src="../../assets/js/finance.js"></script>
+  <script defer src="../../assets/js/casos.js"></script>
+  <script defer src="../../assets/js/cash-flow.js"></script>
+  <script defer src="../../assets/js/dashboard.js"></script>
+  <script defer src="../../assets/js/app.js"></script>
+  <script defer src="../../assets/js/case-bar.js"></script>
+  <script defer src="./script.js"></script>
+  <script defer src="../../assets/js/motion.js"></script>
+</head>
+<body data-page="dashboard" data-base="../../">
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="sidebar-overlay" data-close-menu></div>
+  <aside class="sidebar" id="sidebar" aria-label="Navegación principal"></aside>
+  <div class="workspace">
+    <header class="topbar" id="topbar"></header>
+    <main class="main-content dashboard-main" id="main">
+      <div class="page-heading"><div><p class="eyebrow">VISIÓN FINANCIERA</p><h1 class="page-title">Resumen general<span class="dashboard-heading-dot" aria-hidden="true"></span></h1><p class="page-description">Los resultados de hoy. Una dirección clara para lo que sigue.</p></div><div class="heading-actions"><button class="button button-secondary" id="dashboard-print" type="button"><i data-icon="file"></i>Imprimir resumen</button><a class="button button-primary" href="../estados-financieros/index.html"><i data-icon="grid"></i>Ver estados</a></div></div>
+      <section class="panel case-bar" id="case-bar" aria-label="Empresa"></section>
+      <div id="dashboard-content"></div>
+    </main>
+    <footer class="page-footer"><span>Finora · Sistema de Análisis y Planeación Financiera</span><span>Resumen conectado · Proyecciones por supuestos</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>
