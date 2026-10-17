@@ -54,11 +54,11 @@
         // Conserva las rotaciones que ya tienen los gráficos circulares.
         const currentTransform = getComputedStyle(el).transform;
         const base = currentTransform === 'none' ? '' : currentTransform;
-        play(el, [{ opacity: .2, transform: `${base} scale(.91)` }, { opacity: 1, transform: `${base} scale(1)` }], 750, delay + 100);
+        play(el, [{ opacity: .35, transform: `${base} scale(.95)` }, { opacity: 1, transform: `${base} scale(1)` }], 750, delay + 100);
       } else if (el.matches(rowSelector)) {
-        play(el, [{ opacity: .25 }, { opacity: 1 }], 330, delay);
+        play(el, [{ opacity: .5 }, { opacity: 1 }], 260, delay);
       } else {
-        play(el, [{ opacity: .12, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }], 570, delay);
+        play(el, [{ opacity: .4, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 420, delay);
       }
     }
 

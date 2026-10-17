@@ -6,7 +6,7 @@
 @media screen {
   html[data-presentation="on"] {
     --chart-1: #6fa4ff; --chart-2: #b9d2ff; --chart-3: #5fd9b1; --chart-4: #ffc46e; --chart-5: #c8a8ff; --chart-6: #9fb2cc;
-    --bar-0: #5b7fbf; --bar-1: #91bdff; --grid-line: #3b526f;
+    --bar-0: #5b7fbf; --bar-1: #91bdff; --grid-line: #455365;
   }
 }
 .value-suffix { font-size: .64em; margin-left: 2px; }
@@ -68,7 +68,7 @@
 .dupont-factor, .dupont-result { flex: 1; min-width: 0; display: flex; align-items: center; text-align: center; flex-direction: column; padding: 24px 10px; border-radius: 10px; background: #f7f9fd; border: 1px solid var(--border); }
 .dupont-flow span:not(.math-symbol) { font-size: 11px; color: var(--muted); }
 .dupont-flow strong { font-size: 27px; letter-spacing: -1px; margin: 12px 0 8px; }
-.dupont-flow small { font-size: 10px; line-height: 1.6; color: var(--muted); }
+.dupont-flow small { font-size: 11.5px; line-height: 1.6; color: var(--muted); }
 .dupont-result { background: var(--navy); color: white; border-color: var(--navy); }
 .dupont-result span:not(.math-symbol), .dupont-result small { color: #bbc8e1 !important; }
 .math-symbol { font-size: 22px; color: #66748c; }
@@ -82,8 +82,8 @@
   html[data-presentation="on"] :is(.axis-label, .bar-label, .donut-sub) { font-size: 13px; }
   html[data-presentation="on"] :is(.chart-key li, .donut-figure figcaption, .checks-summary) { font-size: 14px; color: #d5e4f9; }
   html[data-presentation="on"] .priority { font-size: 13px; }
-  html[data-presentation="on"] .priority-high { color: #ffc1c8; background: #5a2a36; }
-  html[data-presentation="on"] .priority-medium { color: #ffdb9e; background: #55412a; }
+  html[data-presentation="on"] .priority-high { color: #ffc1c8; background: #50343b; }
+  html[data-presentation="on"] .priority-medium { color: #ffdb9e; background: #4c4033; }
   html[data-presentation="on"] :is(.ratio-table .formula, .checks-table .note-cell) { font-size: 13px; color: #c2d6f0; }
   html[data-presentation="on"] .table-footnote { font-size: 13px; color: #c2d6f0; }
 }
@@ -100,4 +100,8 @@
   [role="tabpanel"][hidden] { display: block !important; }
   .panel { break-inside: auto; }
   .account-table tr { break-inside: avoid; }
+}
+@media screen {
+  html[data-presentation="on"] .analysis-tabs { gap: 6px 18px; }
+  html[data-presentation="on"] .analysis-tabs .tab-button { padding-left: 2px; padding-right: 2px; font-size: 14px; }
 }

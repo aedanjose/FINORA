@@ -27,7 +27,7 @@
 .import-table input:focus, .import-table select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
 .import-table input[aria-invalid="true"] { border-color: var(--negative); }
 .import-row-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-.import-row-tags span { font-size: 10px; color: var(--muted); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; }
+.import-row-tags span { font-size: 11.5px; color: var(--muted); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; }
 .import-classification { margin-top: 8px; }
 .import-classification summary { font-size: 11px; color: var(--blue); cursor: pointer; }
 .import-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 10px; }
@@ -52,7 +52,7 @@
   html[data-presentation="on"] .import-dialog :is(.import-error,.import-row-error) { color: var(--negative); }
   html[data-presentation="on"] .import-dialog .import-match { color: var(--green); }
   html[data-presentation="on"] .import-row-tags span { color: #c8dcf5; font-size: 12px; }
-  html[data-presentation="on"] .import-review-tag { border-color: #ad905a; }
+  html[data-presentation="on"] .import-review-tag { border-color: #9c8b6b; }
 }
 @media (max-width: 760px) {
   .import-dialog .dialog-content { padding: 16px; }
