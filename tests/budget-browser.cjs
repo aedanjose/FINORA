@@ -1,129 +1,92 @@
 'use strict';
-const assert = require('node:assert/strict');
-const { chromium } = require(process.env.FINORA_PLAYWRIGHT || 'playwright');
-const XLSX = require('../assets/vendor/sheetjs/xlsx.full.min.js');
-const B = require('../assets/js/budget.js');
-const I = require('../assets/js/budget-import.js');
-const base = process.env.FINORA_BASE_URL || 'http://127.0.0.1:4173';
-const route = '/modulos/planeacion-presupuestos/index.html';
-const fields = Object.keys(B.fields);
-const rows = [80,100,120].map((units, index) => ({month:`2026-${10+index}`, ...Object.fromEntries(fields.map(k => [k,0])), units, price:500, unitCost:280}));
-function file() {
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([Object.values(I.labels), ...rows.map(row => Object.keys(I.labels).map(k => row[k]))]), 'Previsiones');
-  XLSX.utils.book_append_sheet(wb, {'!ref':'A1:B6000',A1:{t:'s',v:'Mes'},B1:{t:'s',v:'Unidades'},A6000:{t:'s',v:'2026-10'},B6000:{t:'n',v:1}}, 'Fuera de límite');
-  return {name:'presupuesto.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(XLSX.write(wb,{type:'buffer',bookType:'xlsx'}))};
+const assert=require('node:assert/strict');
+const {chromium}=require(process.env.FINORA_PLAYWRIGHT||'playwright');
+const XLSX=require('../assets/vendor/sheetjs/xlsx.full.min.js'),ref=require('./fixtures/buen-precio.json'),B=require('../assets/js/budget.js');
+const base=process.env.FINORA_BASE_URL||'http://127.0.0.1:4173',route='/modulos/planeacion-presupuestos/index.html';
+function file(){
+  if(process.env.FINORA_BUDGET_WORKBOOK)return process.env.FINORA_BUDGET_WORKBOOK;
+  const wb=XLSX.utils.book_new();for(const [name,s] of Object.entries(ref.sheets))XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(s.values),name);
+  return {name:'buen-precio.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(XLSX.write(wb,{type:'buffer',bookType:'xlsx'}))};
 }
-(async () => {
-  const browser = await chromium.launch({headless:true,...(process.env.FINORA_BROWSER_PATH ? {executablePath:process.env.FINORA_BROWSER_PATH} : {})});
-  try {
-    const context = await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
-    const page = await context.newPage(); page.setDefaultTimeout(10000);
-    const errors = [], remote = [];
-    context.on('page', p => p.on('pageerror', e => errors.push(e.message)));
-    page.on('pageerror', e => errors.push(e.message));
-    context.on('request', r => {if(!r.url().startsWith(base) && !r.url().startsWith('data:') && !r.url().startsWith('blob:'))remote.push(r.url());});
-    page.on('dialog', d => d.accept());
-    const model = () => page.evaluate(() => FinoraCasos.store.active());
-    const analysis = () => page.evaluate(() => FinoraBudget.analyze(FinoraCasos.store.active()));
-    const fill = async (path, v) => page.locator(`[data-path="${path}"]`).fill(String(v));
-    await page.goto(base + route);
-    await page.evaluate(() => FinoraCasos.store.create('Empresa real de prueba'));
-    assert.equal(await page.locator('.budget-status').getAttribute('data-state'), 'incomplete');
-    assert.equal(await page.locator('[data-path="months.0.price"]').inputValue(), '');
-    await page.selectOption('#budget-opening-source','manual');
-    const opening = Object.fromEntries(Object.keys(B.openingFields).map(k => [k,0]));
-    Object.assign(opening,{cash:10000,inventory:5040,equity:15040});
-    for(const [k,v] of Object.entries(opening)) await fill('opening.'+k,v);
-    for(const [k,v] of Object.entries({inventoryUnits:18,inventoryPercent:20,nextUnits:140,collectionPercent:60,paymentPercent:50})) await fill(k,v);
-    for(let index=0;index<rows.length;index++) {
-      if(index) await page.click('#budget-add-month');
-      for(const [k,v] of Object.entries(rows[index])) await fill(`months.${index}.${k}`,v);
-    }
-    await page.check('#budget-confirm'); await page.click('button[type=submit]');
-    assert.match(await page.locator('#budget-save-state').innerText(),/guardado/);
-    const saved = await model(); let r = await analysis();
-    assert.equal(r.ready,true);assert.equal(r.totals.netProfit,66000);assert.equal(r.closing.cash,66560);
-    await page.reload(); assert.deepEqual(await model(),saved);
-    assert.equal(await page.locator('[data-path="months.2.units"]').inputValue(),'120');
-    console.log('ok ingreso manual, cálculos, guardado y recarga');
+(async()=>{
+  const browser=await chromium.launch({headless:true,...(process.env.FINORA_BROWSER_PATH?{executablePath:process.env.FINORA_BROWSER_PATH}:{})});
+  try{
+    const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'}),errors=[],remote=[];
+    context.on('page',p=>{p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());});
+    context.on('request',r=>{if(!r.url().startsWith(base)&&!r.url().startsWith('blob:')&&!r.url().startsWith('data:'))remote.push(r.url());});
+    const page=await context.newPage();page.setDefaultTimeout(10000);
+    const fill=async(path,value)=>page.locator(`[data-path="${path}"]`).fill(String(value));
+    const select=async(path,value)=>page.locator(`[data-path="${path}"]`).selectOption(value);
+    const step=async n=>page.click(`[data-step="${n}"]`),save=async()=>page.click('[data-action="save"]');
+    const model=()=>page.evaluate(()=>FinoraCasos.store.active()),analysis=()=>page.evaluate(()=>FinoraBudget.analyze(FinoraCasos.store.active()));
+    await page.goto(base+route);await page.evaluate(()=>FinoraCasos.store.create('Empresa real de prueba'));
+    assert.equal(await page.locator('[data-path="config.start"]').inputValue(),'');assert.equal(await page.locator('[data-path="advanced.opening.cash"]').count(),0);
+    await fill('name','Octubre a diciembre');await fill('config.start','2026-10-01');await page.locator('[data-path="config.start"]').press('Tab');await step(1);
+    for(let i=0;i<3;i++){await fill(`products.0.values.2026-${10+i}.units`,150+30*i);await fill(`products.0.values.2026-${10+i}.price`,650);}
+    await save();let r=await analysis();assert.equal(r.stages.sales.ready,true);assert.equal(r.totals.sales,351000);assert.equal(r.stages.purchases.ready,false);assert.equal(r.stages.income.ready,false);
+    console.log('ok ventas manuales sin balance, gastos ni impuestos');
 
-    await page.click('#budget-import'); await page.setInputFiles('#budget-file',file());
-    await page.click('#budget-import-review');
-    assert.match(await page.locator('#budget-file-preview').innerText(),/3 meses/);
-    await page.selectOption('#budget-file-sheet','Fuera de límite');
-    await page.waitForFunction(() => document.getElementById('budget-file-error').textContent.includes('5,000'));
-    await page.click('#budget-import-review');assert.match(await page.locator('#budget-file-error').innerText(),/hoja válida/);
-    assert.equal(await page.isDisabled('#budget-import-apply'),true);
-    await page.selectOption('#budget-file-sheet','Previsiones');await page.click('#budget-import-review');
-    await page.click('#budget-import-cancel');assert.deepEqual(await model(),saved);
-    await page.click('#budget-import'); await page.setInputFiles('#budget-file',file()); await page.click('#budget-import-review'); await page.click('#budget-import-apply');
-    assert.deepEqual(await model(),saved,'Aplicar al formulario todavía no guarda');
-    assert.equal(await page.isChecked('#budget-confirm'),false);
-    await fill('months.0.units',81); await page.check('#budget-confirm'); await page.click('button[type=submit]');
-    assert.equal((await analysis()).rows[0].purchaseUnits,83);
-    assert.deepEqual((await model()).balance,saved.balance);assert.deepEqual((await model()).income,saved.income);
-    console.log('ok Excel, revisión, cancelación, ajustes manuales y preservación de cuentas');
+    const before=await model();
+    async function review(){await page.click('[data-action="import"]');await page.setInputFiles('#budget-file',file());await page.selectOption('#budget-file-mode','academic');await page.selectOption('#budget-file-sheet','Datos');await page.click('#budget-import-review');}
+    await review();assert.match(await page.locator('#budget-file-preview').innerText(),/60,900/);await page.click('#budget-import-cancel');assert.deepEqual(await model(),before);
+    await review();await page.click('#budget-import-apply');assert.deepEqual(await model(),before);await save();r=await analysis();assert.equal(r.totals.sales,351000);assert.equal(r.totals.purchases,214700);assert.equal(r.totals.costSales,205200);assert.equal(r.totals.netProfit,60900);assert.equal(r.stages.income.ready,true);
+    const reference=await model(),monthlyId=reference.params.budget.id;await page.reload();await step(2);assert.equal(await page.locator('[data-path="products.0.initialUnits"]').inputValue(),'35');
+    await step(3);assert.match(await page.locator('[data-output="products.0.rows.0.openingValue"]').innerText(),/13,300/);
+    await step(4);assert.equal(await page.locator('[data-path="expenses.4.category"]').inputValue(),'depreciation');await step(5);assert.match(await page.locator('[data-output="totals.netProfit"]').innerText(),/60,900/);
+    assert.deepEqual((await model()).balance,before.balance);assert.deepEqual((await model()).income,before.income);
+    console.log('ok Excel real, revisión, cancelar, aplicar, persistir, costos y depreciación');
 
-    await page.click('#budget-import');
-    await page.setInputFiles('#budget-file',{name:'invalido.csv',mimeType:'text/csv',buffer:Buffer.from('Mes;Unidades;Precio\n2026-10;ilegible;500')});
-    await page.click('#budget-import-review'); assert.match(await page.locator('#budget-file-error').innerText(),/inválido/);
-    assert.equal(await page.isDisabled('#budget-import-apply'),true);
-    await page.setInputFiles('#budget-file',{name:'valido.csv',mimeType:'text/csv',buffer:Buffer.from('Mes;Unidades;Precio\n2026-10;0;500')});
-    await page.click('#budget-import-review');assert.equal(await page.isDisabled('#budget-import-apply'),false);
-    await page.click('#budget-import-cancel');
-    console.log('ok CSV, error recuperable y ceros');
+    const proforma=await context.newPage();await proforma.goto(base+'/modulos/proforma/index.html');assert.match(await proforma.locator('#income-proforma-body').innerText(),/60,900.00/);assert.doesNotMatch(await proforma.locator('#paper-badge-status').innerText(),/INCOMPLETO/);
+    await proforma.click('#tab-balance');assert.match(await proforma.locator('#paper-badge-status').innerText(),/SIN ACTIVAR/);await proforma.locator('#tab-balance').press('Home');assert.match(await proforma.locator('#paper-badge-status').innerText(),/PRESUPUESTADA/);
+    await step(1);await fill('products.0.values.2026-10.price',660);await save();await proforma.waitForFunction(()=>document.getElementById('income-proforma-body').textContent.includes('61,950.00'));
+    await fill('products.0.values.2026-10.price',650);await save();
+    console.log('ok Proforma comparte resultados, navegación por teclado y sincronización');
 
-    const proforma = await context.newPage(); await proforma.goto(base+'/modulos/proforma/index.html');
-    assert.match(await proforma.locator('#income-proforma-body').innerText(),/150,500.00/);
-    assert.doesNotMatch(await proforma.locator('#paper-badge-status').innerText(),/INCOMPLETO|EJEMPLO/);
-    await proforma.click('#tab-balance');assert.equal(await proforma.locator('#report-balance').isVisible(),true);
-    await proforma.locator('#tab-balance').press('Home');assert.equal(await proforma.locator('#report-income').isVisible(),true);
-    await fill('months.0.units',80);await page.click('button[type=submit]');
-    await proforma.waitForFunction(() => document.getElementById('income-proforma-body').textContent.includes('150,000.00'));
+    await page.click('[data-action="copy"]');await fill('name','Plan anual');await step(0);await select('config.frequency','annual');await page.selectOption('#budget-duration','2');await page.click('[data-action="product"]');await fill('products.1.name','Segundo producto');await step(1);
+    for(let i=0;i<2;i++)for(const year of ['2026','2027']){await fill(`products.${i}.values.${year}.units`,10);await fill(`products.${i}.values.${year}.price`,100+i*50);}
+    await save();r=await analysis();assert.equal(r.rows.length,2);assert.equal(r.totals.sales,5000);assert.equal(r.products.length,2);assert.equal((await model()).params.budgetProjections.length,2);
+    await step(0);await fill('config.count',1);await page.locator('[data-path="config.count"]').press('Tab');await fill('config.count',2);await page.locator('[data-path="config.count"]').press('Tab');await step(1);assert.equal(await page.locator('[data-path="products.0.values.2027.units"]').inputValue(),'10');await save();
+    const options=await page.locator('#budget-projections option').evaluateAll(els=>els.map(e=>({value:e.value,text:e.textContent})));await page.selectOption('#budget-projections',options.find(o=>o.text.startsWith('Octubre a diciembre')).value);await save();assert.equal((await model()).params.budget.id,monthlyId);assert.equal((await analysis()).totals.netProfit,60900);
+    console.log('ok múltiples productos, años, horizonte reversible y recuperación de proyecciones');
+
+    await step(6);assert.equal(await page.locator('[data-path="advanced.opening.cash"]').count(),0);await page.check('[data-path="advanced.enabled"]');await select('advanced.openingSource','manual');await page.locator('summary').click();
+    const opening=Object.fromEntries(Object.keys(B.openingFields).map(k=>[k,0]));Object.assign(opening,{cash:50000,inventory:13300,fixed:10000,equity:73300});
+    for(const [k,v] of Object.entries(opening))await fill('advanced.opening.'+k,v);
+    await fill('advanced.collectionPercent',100);await fill('advanced.paymentPercent',100);await page.check('[data-path="advanced.confirmed"]');await save();r=await analysis();assert.equal(r.ready,true);assert.equal(r.closing.difference,0);
+    await proforma.click('#tab-balance');await proforma.waitForFunction(()=>!document.getElementById('paper-badge-status').textContent.includes('INCOMPLETO'));assert.match(await proforma.locator('#balance-equation-msg').innerText(),/Activos = pasivos/);
+    console.log('ok caja avanzada y balance conciliado');
+
+    const beforePersonal=await model(),inventory=await context.newPage();
+    await inventory.goto(base+'/modulos/inventario/index.html');
+    assert.equal(await inventory.locator('#summary-products').innerText(),'8');
+    assert.equal(await inventory.locator('#case-bar').count(),0);
+    assert.equal(await inventory.evaluate(()=>typeof window.FinoraBudget),'undefined');
+    await inventory.fill('#inventory-search','Silla');
+    assert.equal(await inventory.locator('#inventory-rows tr').count(),1);
+    assert.deepEqual(await model(),beforePersonal);
+    await step(0);assert.equal(await page.locator('#budget-inventory').count(),0);
+    await step(2);assert.equal(await page.locator('#budget-inventory').count(),0);
+    assert.equal(await page.locator('[data-path="products.0.initialUnits"]').inputValue(),'35');
+    console.log('ok inventario complementario independiente y existencias propias del presupuesto');
+
+    await step(1);await page.click('[data-action="import"]');await page.setInputFiles('#budget-file',{name:'invalido.csv',mimeType:'text/csv',buffer:Buffer.from('Producto;Período;Unidades;Precio unitario\nA;2026-10;ilegible;500')});await page.click('#budget-import-review');assert.match(await page.locator('#budget-file-error').innerText(),/inválido/);assert.equal(await page.isDisabled('#budget-import-apply'),true);
+    await page.setInputFiles('#budget-file',{name:'valido.csv',mimeType:'text/csv',buffer:Buffer.from('Producto;Período;Unidades;Precio unitario\nA;2026-10;0;500')});await page.click('#budget-import-review');assert.equal(await page.isDisabled('#budget-import-apply'),false);await page.click('#budget-import-cancel');
+    await fill('products.0.values.2026-10.price',700);await proforma.evaluate(()=>{const c=FinoraCasos.store.active();c.name='Empresa actualizada';FinoraCasos.store.save(c);});await page.waitForFunction(()=>document.getElementById('budget-notice').textContent.includes('otra vista'));await save();assert.match(await page.locator('#budget-save-error').innerText(),/otra vista/);await page.click('[data-action="reload"]');assert.equal(await page.locator('[data-path="products.0.values.2026-10.price"]').inputValue(),'650');
+    const first=await model();await page.evaluate(()=>FinoraCasos.store.create('Segunda empresa'));await step(0);assert.equal(await page.locator('[data-path="config.start"]').inputValue(),'');assert.equal(await inventory.locator('#summary-products').innerText(),'8');await page.selectOption('#case-select',first.id);assert.equal((await analysis()).totals.netProfit,60900);
+    console.log('ok CSV, ceros, conflictos entre pestañas y aislamiento por empresa');
+
+    // Importar gastos de cuentas históricas sin sobrescribirlas ni duplicar fuentes.
+    await page.evaluate(()=>{const c=FinoraCasos.store.active();c.income.push({id:'test-opex',name:'Gastos administrativos',category:'opex',sign:1,amounts:{current:12000,previous:10000}});FinoraCasos.store.save(c);});
+    await page.click('[data-action="copy"]');await step(4);const count=await page.locator('[data-remove-expense]').count();await page.click('[data-action="history"]');assert.equal(await page.locator('[data-remove-expense]').count(),count+2); // Cuenta vacía original + cuenta informada.
+    const imported=await page.locator('[data-remove-expense]').count();await page.click('[data-action="history"]');assert.equal(await page.locator('[data-remove-expense]').count(),imported);
+    await select(`expenses.${imported-1}.mode`,'adjusted');await fill(`expenses.${imported-1}.adjustment`,10);assert.match(await page.locator(`[data-output="expenseRows.${imported-1}.amounts.2026-10"]`).innerText(),/1,100/);
+    await page.click('[data-action="reload"]');
+    console.log('ok gastos históricos ajustables y fuentes sin duplicar');
+
+    await page.setViewportSize({width:390,height:844});await step(5);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);await page.screenshot({path:'.reference/budget-stages-mobile.png',fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'.reference/budget-stages-desktop.png',fullPage:true});await proforma.click('#tab-income');await proforma.screenshot({path:'.reference/budget-proforma.png',fullPage:true});
     await proforma.emulateMedia({media:'print'});assert.match(await proforma.locator('#paper-period').innerText(),/2026-10 a 2026-12/);await proforma.emulateMedia({media:'screen'});
-    console.log('ok proforma, teclado, impresión y sincronización entre pestañas');
-
-    // Un guardado de otra pestaña no debe ser sobrescrito por un borrador viejo.
-    await fill('months.0.price',510);
-    await proforma.evaluate(() => {const c=FinoraCasos.store.active();c.name='Empresa actualizada';FinoraCasos.store.save(c);});
-    await page.waitForFunction(() => document.getElementById('budget-notice').textContent.includes('otra vista'));
-    await page.click('button[type=submit]');assert.match(await page.locator('#budget-save-error').innerText(),/otra vista/);
-    await page.click('#budget-reload');assert.equal(await page.locator('[data-path="months.0.price"]').inputValue(),'500');
-
-    const first = await model();
-    await page.evaluate(() => FinoraCasos.store.create('Segunda empresa'));
-    assert.equal(await page.locator('[data-path="months.0.units"]').inputValue(),'');
-    await proforma.waitForFunction(() => document.getElementById('paper-company').textContent === 'SEGUNDA EMPRESA');
-    assert.match(await proforma.locator('#paper-badge-status').innerText(),/INCOMPLETO/);assert.equal(await proforma.locator('#proforma-net-margin').innerText(),'—');
-    await page.selectOption('#case-select',first.id);
-    assert.equal(await page.locator('[data-path="months.0.units"]').inputValue(),'80');
-    console.log('ok aislamiento por empresa, faltantes y protección de cambios concurrentes');
-
-    await page.evaluate(() => scrollTo(0,0));
-    await page.screenshot({path:'.reference/budget-desktop.png',fullPage:true});
-    for(const p of [page,proforma]) {
-      await p.setViewportSize({width:390,height:844});
-      await p.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      const width = await p.evaluate(() => ({scroll:document.documentElement.scrollWidth,viewport:innerWidth}));
-      assert.ok(width.scroll <= width.viewport+1,p.url()+JSON.stringify(width));
-    }
-    await page.screenshot({path:'.reference/budget-mobile.png',fullPage:true});
-    await proforma.screenshot({path:'.reference/budget-proforma.png',fullPage:true});
-
-    await page.evaluate(() => {const c=FinoraCasos.store.active();c.balance=Finance.accountsFromBalances({current:c.params.budget.opening});FinoraCasos.store.save(c);});
-    await page.selectOption('#budget-opening-source','automatic');
-    assert.equal(await page.locator('[data-path="opening.cash"]').inputValue(),'10000');
-    assert.equal(await page.locator('[data-path="opening.cash"]').getAttribute('readonly'),'');
-    await page.check('#budget-confirm');await page.click('button[type=submit]');
-    assert.equal((await analysis()).ready,true);
-    await page.evaluate(() => {const c=FinoraCasos.store.active();c.currency='USD';FinoraCasos.store.save(c);});
-    assert.equal((await analysis()).stale,true);assert.equal(await page.locator('[data-path="months.0.units"]').inputValue(),'');
-    await page.click('button[type=submit]');
-    assert.equal((await model()).params.budgetArchive.length,1);
-    assert.equal((await model()).params.budgetArchive[0].months[0].units,80);
-    console.log('ok saldos automáticos, confirmación y archivo del presupuesto al cambiar de contexto');
-    assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);
-    console.log('ok vista móvil, sin errores JavaScript ni peticiones externas');
-  } finally { await browser.close(); }
-})().catch(error => {console.error(error);process.exitCode=1;});
+    assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);console.log('ok vista móvil, impresión y ejecución sin errores ni conexiones externas');
+    await context.close();
+  }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

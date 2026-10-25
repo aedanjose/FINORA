@@ -1,185 +1,149 @@
 (() => {
   'use strict';
-  const C = window.FinoraCasos, B = window.FinoraBudget, I = window.FinoraBudgetImport;
-  const T = window.FinoraFileTable, P = window.FinoraPaste, { esc } = window.FinoraCaseBar;
-  const editor = document.getElementById('budget-editor'), results = document.getElementById('budget-results');
-  const notice = document.getElementById('budget-notice');
-  let model, draft, snapshot, dirty = false, saving = false, libraryPromise;
-  const drafts = new Map();
-  const money = v => Number.isFinite(v) ? C.fmt.money(v, model) : '—';
-  const plain = v => Number.isFinite(v) ? (v < 0 ? '−' : '') + C.fmt.plain(v, 4) : '—';
-  const shown = v => v === null || v === undefined ? '' : String(v);
-  const numeric = value => { const parsed = P.parseAmount(value); return Number.isNaN(parsed) ? value : parsed; };
-  const input = (path, label, value, extra = '') => `<label>${esc(label)}<input class="input" data-path="${esc(path)}" inputmode="decimal" value="${esc(shown(value))}" placeholder="Sin informar" ${extra}></label>`;
-  function getDraftKey(c) { return c.id + B.context(c); }
-  function load() {
-    if (model && dirty) drafts.set(getDraftKey(model), { draft: structuredClone(draft), snapshot });
-    model = C.store.active();
-    const pending = drafts.get(getDraftKey(model));
-    draft = pending ? pending.draft : B.settingsFor(model);
-    snapshot = pending ? pending.snapshot : JSON.stringify(model);
-    dirty = !!pending;
-    notice.textContent = model.sample ? 'Empresa de ejemplo seleccionada. Para trabajar con datos reales, crea o importa tu empresa en Estados financieros.' : '';
-    if (!C.store.started()) notice.textContent = 'Empieza creando o importando tu empresa en Estados financieros. Los casos de clase están identificados como ejemplos.';
-    if (model.params?.budget && model.params.budget.context !== B.context(model)) notice.textContent += ' El presupuesto anterior se conserva, pero no se aplica a estos años, moneda o escala. Al guardar lo nuevo se archivará el anterior.';
-    renderEditor(); renderResults();
+  const C=window.FinoraCasos, B=window.FinoraBudget, I=window.FinoraBudgetImport, T=window.FinoraFileTable, P=window.FinoraPaste;
+  const {esc}=window.FinoraCaseBar, editor=document.getElementById('budget-editor'), results=document.getElementById('budget-results'), notice=document.getElementById('budget-notice');
+  const steps=[['configuration','Configuración'],['sales','Ventas'],['purchases','Compras'],['costs','Costo de ventas'],['expenses','Gastos operativos'],['income','Estado de Resultados'],['balance','Caja y proforma avanzado']];
+  let model,draft,snapshot,r,stage=0,dirty=false,saving=false,libraryPromise;
+  const drafts=new Map();
+  const projectionKey=p=>JSON.stringify([p.id,p.context]);
+  const get=(obj,path)=>path.split('.').reduce((v,k)=>v?.[k],obj);
+  const put=(path,value)=>{const keys=path.split('.');let obj=draft;for(const k of keys.slice(0,-1))obj=obj[k]??= {};obj[keys.at(-1)]=value;};
+  const money=v=>Number.isFinite(v)?C.fmt.money(v,model):'—';
+  const plain=v=>Number.isFinite(v)?(v<0?'−':'')+C.fmt.plain(v,4).replace(/\.?0+$/,''):'—';
+  const input=(path,label,type='number',fallback=null)=>`<input class="input" data-path="${esc(path)}" data-kind="${type}" ${type==='date'?'type="date"':type==='text'?'type="text" maxlength="100"':'inputmode="decimal"'} aria-label="${esc(label)}" value="${esc(get(draft,path)??fallback??'')}" placeholder="Pendiente">`;
+  const field=(path,label,type='number')=>`<label>${esc(label)}${input(path,label,type)}</label>`;
+  const select=(path,label,options)=>`<label>${esc(label)}<select class="select" data-path="${path}" data-kind="text">${options.map(([v,t])=>`<option value="${v}"${get(draft,path)===v?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+  const check=(path,label)=>`<label class="budget-confirm"><input type="checkbox" data-path="${path}"${get(draft,path)?' checked':''}>${esc(label)}</label>`;
+  const out=(path,unit='money')=>`<span data-output="${path}" data-unit="${unit}">${esc((unit==='units'?plain:money)(get(r,path)))}</span>`;
+  const row=(label,cells,total='—')=>`<tr><th scope="row">${esc(label)}</th>${cells.map(v=>`<td>${v}</td>`).join('')}<td class="budget-total">${total}</td></tr>`;
+  const table=(caption,rows)=>`<div class="budget-scroll" tabindex="0" role="region" aria-label="${esc(caption)}"><table class="budget-input-table"><caption>${esc(caption)}</caption><thead><tr><th scope="col">Concepto</th>${r.periods.map(p=>`<th scope="col" title="Inicio: ${p.start}">${p.label}</th>`).join('')}<th scope="col">Total / cierre</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const calcRow=(key,label,base='rows',total=`totals.${key}`,unit='money')=>row(label,r.periods.map((p,i)=>out(`${base}.${i}.${key}`,unit)),total?out(total,unit):'—');
+  const entryRow=(path,label,fallback=null)=>row(label,r.periods.map(p=>input(`${path}.${p.key}`,`${label} · ${p.label}`,'number',fallback)));
+  const box=(title,body)=>`<section class="budget-product"><h3>${esc(title)}</h3>${body}</section>`;
+  function cache(){if(model&&dirty)drafts.set(model.id,{draft:structuredClone(draft),snapshot,stage});}
+  function load(){
+    cache();model=C.store.active();if(localCompany!==model.id){localDrafts.clear();localCompany=model.id;}const pending=drafts.get(model.id);
+    draft=pending?.draft||B.upgrade(model,model.params?.budget);snapshot=pending?.snapshot||JSON.stringify(model);dirty=!!pending;stage=pending?.stage??stage;
+    notice.textContent=model.sample?'Empresa de ejemplo seleccionada. Crea tu empresa en Estados financieros para trabajar con datos reales.':'';
+    if(draft.context!==B.context(model))notice.textContent+=' La proyección pertenece a otra moneda, escala o años. Se conserva; crea una nueva o una copia revisada para este contexto.';
+    render();
   }
-  function renderEditor() {
-    const auto = B.automaticOpening(model), manual = draft.openingSource === 'manual';
-    editor.innerHTML = `<form id="budget-form" novalidate>
-      <section class="panel budget-section"><div class="panel-header"><div><h2 class="panel-title">1. Datos de partida</h2><p class="panel-subtitle">Saldos al inicio del primer mes presupuestado</p></div></div><div class="panel-body">
-        <p class="budget-help">Este modelo trabaja con una línea comercial de unidades comparables y costo promedio ponderado mensual. Los importes y precios usan <span class="budget-unit">${esc(C.fmt.unit(model))}</span>. No mezcles productos con costos diferentes en una misma unidad.</p>
-        <div class="budget-grid"><label>Origen de los saldos<select class="select" id="budget-opening-source"><option value="automatic"${manual ? '' : ' selected'}>Automático · balance actual</option><option value="manual"${manual ? ' selected' : ''}>Manual · saldos de partida</option></select></label>${input('inventoryUnits', 'Unidades de inventario inicial', draft.inventoryUnits)}</div>
-        <details${manual ? ' open' : ''}><summary>${manual ? 'Ingresar saldos iniciales' : `Revisar saldos del balance de ${esc(model.periods.current)}`}</summary><p class="budget-help">Un espacio vacío significa dato pendiente. El cero debe estar informado. Los saldos manuales solo se usan en este presupuesto; no cambian las cuentas históricas.</p><div class="budget-grid">${Object.entries(B.openingFields).map(([key, label]) => input('opening.' + key, label, manual ? draft.opening[key] : auto.amounts[key], manual ? '' : 'readonly')).join('')}</div>${!manual ? '<p class="budget-help"><a class="link" href="../estados-financieros/index.html">Importar Excel/CSV o completar el balance manualmente →</a></p>' : ''}</details>
-      </div></section>
-      <section class="panel budget-section"><div class="panel-header"><div><h2 class="panel-title">2. Políticas del presupuesto</h2><p class="panel-subtitle">Supuestos que la empresa debe definir</p></div></div><div class="panel-body"><div class="budget-grid">
-        ${input('inventoryPercent', 'Inventario final · % de unidades del mes siguiente', draft.inventoryPercent)}
-        ${input('nextUnits', 'Unidades de venta del mes posterior al presupuesto', draft.nextUnits)}
-        ${input('collectionPercent', 'Ventas cobradas en el mismo mes · %', draft.collectionPercent)}
-        ${input('paymentPercent', 'Compras pagadas en el mismo mes · %', draft.paymentPercent)}
-      </div><p class="budget-help">El crédito restante se cobra o paga al mes siguiente. Las cuentas por cobrar y pagar iniciales se liquidan en el primer mes. El inventario disponible puede superar el objetivo; no se calculan devoluciones automáticas.</p></div></section>
-      <section class="panel budget-section"><div class="panel-header"><div><h2 class="panel-title">3. Previsiones mensuales</h2><p class="panel-subtitle">Ingreso manual o importación revisada de Excel/CSV</p></div></div><div class="panel-body">
-        <div class="budget-actions"><button type="button" class="button button-secondary" id="budget-import">Importar Excel o CSV</button><button type="button" class="button button-ghost" id="budget-template">Descargar plantilla CSV</button><button type="button" class="button button-secondary" id="budget-add-month">Agregar mes</button></div>
-        <p class="budget-help">Desplaza la tabla para completar las columnas. Escribe 0 en los movimientos que no apliquen. Los préstamos netos son positivos al recibir dinero y negativos al amortizar deuda de largo plazo. La depreciación se informa aparte de los gastos pagados.</p>
-        <div class="budget-scroll"><table class="budget-input-table"><caption>Previsiones en ${esc(C.fmt.unit(model))}. Las unidades son cantidades físicas.</caption><thead><tr><th scope="col">Mes</th>${Object.values(B.fields).map(label => `<th scope="col">${esc(label)}</th>`).join('')}</tr></thead><tbody>${draft.months.map((row, index) => `<tr><td><div class="month-cell"><input class="input" type="month" data-path="months.${index}.month" value="${esc(row.month)}" aria-label="Mes ${index + 1}"><button class="mini-button" type="button" data-remove-month="${index}" aria-label="Quitar mes ${index + 1}"${draft.months.length === 1 ? ' disabled' : ''}>×</button></div></td>${Object.entries(B.fields).map(([key, label]) => `<td><input class="input" inputmode="decimal" data-path="months.${index}.${key}" value="${esc(shown(row[key]))}" placeholder="Pendiente" aria-label="${esc(label)} · mes ${index + 1}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
-        <label class="budget-confirm"><input type="checkbox" id="budget-confirm"${draft.confirmed && draft.baseSignature === B.signature(model) ? ' checked' : ''}><span>Revisé los datos y confirmo que los saldos corresponden al inicio del primer mes. Se aplican los plazos descritos arriba; gastos, intereses, impuestos, otros ingresos y dividendos se pagan o cobran en el mes. Las inversiones se pagan al contado, el financiamiento corresponde a deuda de largo plazo y los demás saldos del balance se mantienen constantes.</span></label>
-        <div class="budget-actions"><button class="button button-primary" type="submit">Guardar y recalcular</button><button class="button button-secondary" type="button" id="budget-reload">Descartar cambios sin guardar</button><span id="budget-save-state" role="status">${dirty ? 'Cambios sin guardar' : 'Los cambios se guardan al pulsar Guardar y recalcular.'}</span></div><p id="budget-save-error" class="budget-error" role="alert"></p>
-      </div></section></form>`;
-    document.getElementById('budget-form').addEventListener('submit', save);
-    document.getElementById('budget-opening-source').addEventListener('change', event => {
-      draft.openingSource = event.target.value; draft.confirmed = false; markDirty(); renderEditor(); renderResults();
+  function mark(){dirty=true;draft.advanced.confirmed=false;const confirmed=editor.querySelector('[data-path="advanced.confirmed"]');if(confirmed)confirmed.checked=false;refresh();}
+  function refresh(){
+    r=B.analyze(model,draft);
+    editor.querySelectorAll('[data-output]').forEach(el=>el.textContent=(el.dataset.unit==='units'?plain:money)(get(r,el.dataset.output)));
+    editor.querySelectorAll('[data-step]').forEach(el=>{const key=steps[Number(el.dataset.step)][0];el.dataset.ready=r.stages[key].ready;el.querySelector('small').textContent=key==='balance'&&!draft.advanced.enabled?'Opcional':r.stages[key].ready?'Calculado':'Pendiente';});
+    const state=document.getElementById('budget-save-state');if(state)state.textContent=dirty?'Cambios sin guardar · Proforma usa la última versión guardada.':'Proyección guardada o nueva sin cambios.';
+    const keys=stage===6?['cash','balance']:[steps[stage][0]], issues=[...new Set(keys.flatMap(k=>r.stages[k].issues))], warnings=[...new Set(keys.flatMap(k=>r.stages[k].warnings))];
+    const ready=r.stages[steps[stage][0]].ready,optional=stage===6&&!draft.advanced.enabled;
+    results.innerHTML=`<div class="budget-status" data-state="${ready?'ready':'incomplete'}"><strong>${esc(steps[stage][1])} · ${optional?'opcional':ready?'calculado':'pendiente'}</strong><p>${optional?'Activa esta etapa cuando necesites proyectar caja y balance.':ready?'Los resultados se actualizan al editar las entradas.':issues.length?'Completa los siguientes datos de esta etapa.':'Completa primero las etapas de las que depende este resultado.'}</p>${issues.length?`<ul>${issues.slice(0,30).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>${issues.length>30?`<p>Y ${issues.length-30} datos pendientes adicionales.</p>`:''}`:''}${warnings.length?`<ul>${warnings.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}</div>`;
+  }
+  function render(){
+    r=B.analyze(model,draft);
+    const projections=model.params?.budgetProjections||[],saved=projections.map(p=>localDrafts.get(projectionKey(p))||p);
+    localDrafts.forEach(p=>{if(!saved.some(s=>projectionKey(s)===projectionKey(p)))saved.push(p);});
+    if(model.params?.budget&&!saved.some(p=>p.id===model.params.budget.id&&p.context===model.params.budget.context))saved.push(model.params.budget);
+    (model.params?.budgetArchive||[]).forEach(p=>saved.push(p));
+    editor.innerHTML=`<section class="panel budget-section"><div class="panel-body"><div class="budget-grid">${field('name','Nombre de la proyección','text')}<label>Recuperar proyección<select class="select" id="budget-projections"><option value="">Seleccionar guardada…</option>${saved.map((p,i)=>`<option value="${i}">${esc((p.name||'Presupuesto anterior')+(localDrafts.has(projectionKey(p))?' · borrador local':''))}${p.context!==B.context(model)?' · otro contexto':''}</option>`).join('')}</select></label></div><div class="budget-actions"><button class="button button-secondary" type="button" data-action="new">Nueva proyección</button><button class="button button-secondary" type="button" data-action="copy">Crear copia</button><button class="button button-primary" type="button" data-action="save">Guardar y recalcular</button><button class="button button-ghost" type="button" data-action="reload">Descartar cambios</button></div><p id="budget-save-state" role="status"></p><p class="budget-error" id="budget-save-error" role="alert"></p></div></section>
+      <nav class="budget-steps" aria-label="Etapas del presupuesto">${steps.map(([key,label],i)=>`<button type="button" data-step="${i}"${i===stage?' aria-current="step"':''}><span>${i+1}. ${label}</span><small></small></button>`).join('')}</nav>
+      <section class="panel budget-section"><div class="panel-header"><div><h2 class="panel-title">${stage+1}. ${steps[stage][1]}</h2><p class="panel-subtitle">${esc(C.fmt.unit(model))} · entradas editables y resultados calculados</p></div></div><div class="panel-body">${stageBody()}<div class="budget-actions">${stage?'<button class="button button-secondary" type="button" data-action="previous">← Anterior</button>':''}${stage<6?'<button class="button button-primary" type="button" data-action="next">Siguiente →</button>':'<a class="button button-primary" href="../proforma/index.html">Ver proforma guardada</a>'}</div></div></section>`;
+    document.getElementById('budget-projections').addEventListener('change',e=>{
+      if(e.target.value==='')return;
+      // Una selección recuperada es un borrador hasta que se pulse Guardar.
+      const selected=saved[Number(e.target.value)];if(dirty)preserveLocal();draft=B.upgrade(model,localDrafts.get(projectionKey(selected))||selected);dirty=true;render();
     });
-    document.getElementById('budget-confirm').addEventListener('change', event => { draft.confirmed = event.target.checked; draft.baseSignature = B.signature(model); markDirty(); renderResults(); });
-    document.getElementById('budget-add-month').addEventListener('click', () => {
-      if (draft.months.length >= 24) { window.Finora.toast('Puedes presupuestar hasta 24 meses.'); return; }
-      draft.months.push(B.blankMonth(B.nextMonth(draft.months.at(-1)?.month))); markDirty(); renderEditor(); renderResults();
-    });
-    document.getElementById('budget-reload').addEventListener('click', () => { drafts.delete(getDraftKey(model)); dirty = false; load(); });
-    document.getElementById('budget-import').addEventListener('click', openImport);
-    document.getElementById('budget-template').addEventListener('click', downloadTemplate);
+    const nav=editor.querySelector('.budget-steps'),active=nav.querySelector('[aria-current]');
+    if(nav.scrollWidth>nav.clientWidth)nav.scrollLeft=active.getBoundingClientRect().left-nav.getBoundingClientRect().left-(nav.clientWidth-active.clientWidth)/2;
+    refresh();
   }
-  function markDirty() {
-    dirty = true;
-    const status = document.getElementById('budget-save-state');
-    if (status) status.textContent = 'Cambios sin guardar · la proforma usa el último presupuesto guardado.';
+  function preserveLocal(){
+    // Mantener las versiones sin guardar al alternar proyecciones en esta pestaña.
+    localDrafts.set(projectionKey(draft),structuredClone(draft));
   }
-  editor.addEventListener('input', event => {
-    const el = event.target;
-    if (!el.dataset.path || el.readOnly) return;
-    const path = el.dataset.path.split('.'); let dest = draft;
-    for (const key of path.slice(0, -1)) dest = dest[key];
-    const value = path.at(-1) === 'month' ? el.value : numeric(el.value);
-    dest[path.at(-1)] = value;
-    el.setAttribute('aria-invalid', String(value !== null && path.at(-1) !== 'month' && !Number.isFinite(value)));
-    markDirty(); renderResults();
+  const localDrafts=new Map();let localCompany;
+  function stageBody(){
+    const help='<p class="budget-help">Los campos vacíos son datos pendientes. Escribe 0 cuando corresponda. Los importes, incluidos los precios unitarios, usan la moneda y escala de la empresa.</p>';
+    if(stage===0){const options=(draft.config.frequency==='annual'?[1,2,3,5]:[1,2,3,6,12]);return `<div class="budget-grid">${select('config.frequency','Periodicidad',[['monthly','Mensual'],['annual','Anual']])}${field('config.start','Fecha de inicio','date')}<label>Duración habitual<select class="select" id="budget-duration"><option value="">Personalizada</option>${options.map(n=>`<option value="${n}"${draft.config.count===n?' selected':''}>${n} ${draft.config.frequency==='annual'?'años':'meses'}</option>`).join('')}</select></label>${field('config.count','Cantidad de períodos · 1 a 600')}</div><p class="budget-help">Cada columna comienza en la fecha indicada. Al reducir el horizonte se conservan las entradas fuera de vista para poder ampliarlo nuevamente.</p>${table('Horizonte de la proyección',row('Inicio de cada período',r.periods.map(p=>esc(p.start))))}${draft.products.map((p,i)=>box(`Producto ${i+1}`,`<div class="budget-grid">${field(`products.${i}.name`,'Nombre del producto','text')}${field(`products.${i}.sku`,'Código / SKU (opcional)','text')}</div>${draft.products.length>1?`<button type="button" class="button button-ghost" data-remove-product="${i}">Retirar producto de esta proyección</button>`:''}`)).join('')}<div class="budget-actions"><button class="button button-secondary" data-action="product">Agregar producto</button><button class="button button-secondary" data-action="import">Importar Excel o CSV</button><button class="button button-ghost" data-action="template">Descargar plantilla</button></div>${draft.importSource?`<p class="budget-help">Origen: ${esc(draft.importSource.file)} · ${esc(draft.importSource.sheet)}. ${esc(draft.importSource.note||'')}</p>`:''}`;}
+    if(stage===1)return `${help}<p class="budget-formula">Ventas = unidades proyectadas × precio unitario</p><div class="budget-actions"><button class="button button-secondary" data-action="import">Importar Excel o CSV</button><button class="button button-ghost" data-action="template">Descargar plantilla</button></div>${draft.products.map((p,i)=>box(p.name,table('Ventas por producto',row('Unidades proyectadas',r.periods.map(k=>input(`products.${i}.values.${k.key}.units`,`Unidades · ${p.name} · ${k.label}`)),out(`products.${i}.totals.units`,'units'))+row('Precio unitario',r.periods.map(k=>input(`products.${i}.values.${k.key}.price`,`Precio · ${p.name} · ${k.label}`)))+calcRow('sales','Ventas calculadas',`products.${i}.rows`,`products.${i}.totals.sales`)))).join('')}${table('Ventas consolidadas',calcRow('sales','Total ventas'))}`;
+    if(stage===2)return `${help}<p class="budget-formula">Compras (unidades) = máximo(0, ventas + inventario final deseado − inventario inicial)<br>Compras monetarias = unidades a comprar × costo unitario</p>${draft.products.map((p,i)=>box(p.name,`<div class="budget-grid">${field(`products.${i}.initialUnits`,'Inventario inicial · unidades')}${select(`products.${i}.inventoryMode`,'Inventario final deseado',[['percent','% de ventas del período siguiente'],['manual','Cantidad manual por período']])}${select(`products.${i}.rounding`,'Redondeo de unidades',[['none','Permitir fracciones'],['ceil','Entero superior'],['floor','Entero inferior'],['nearest','Entero más cercano']])}${p.inventoryMode==='percent'?field(`products.${i}.inventoryPercent`,'Inventario final · %')+field(`products.${i}.nextUnits`,'Ventas del período posterior al horizonte · unidades'):''}</div>${table('Compras y existencias físicas',calcRow('units','Unidades de venta',`products.${i}.rows`,`products.${i}.totals.units`,'units')+calcRow('openingUnits','Inventario inicial · unidades',`products.${i}.rows`,null,'units')+(p.inventoryMode==='manual'?row('Inventario final deseado · unidades',r.periods.map(k=>input(`products.${i}.values.${k.key}.targetUnits`,`Inventario final · ${p.name} · ${k.label}`))):calcRow('targetInventory','Inventario final deseado · unidades',`products.${i}.rows`,null,'units'))+calcRow('purchaseUnits','Compras · unidades',`products.${i}.rows`,`products.${i}.totals.purchaseUnits`,'units')+row('Costo unitario de compra',r.periods.map(k=>input(`products.${i}.values.${k.key}.unitCost`,`Costo unitario · ${p.name} · ${k.label}`)))+calcRow('purchases','Compras monetarias',`products.${i}.rows`,`products.${i}.totals.purchases`)+calcRow('endingUnits','Inventario final real · unidades',`products.${i}.rows`,`products.${i}.rows.${r.periods.length-1}.endingUnits`,'units'))}`)).join('')}${table('Compras consolidadas',calcRow('purchases','Total compras'))}`;
+    if(stage===3)return `${help}<p class="budget-formula">Costo de ventas = inventario inicial valorizado + compras − inventario final valorizado<br>Promedio ponderado periódico = valor disponible ÷ unidades disponibles</p>${draft.products.map((p,i)=>box(p.name,`${field(`products.${i}.initialValue`,'Valor monetario total del inventario inicial')}${table('Valoración del inventario',calcRow('openingValue','Inventario inicial · valor',`products.${i}.rows`,null)+calcRow('purchases','Compras · valor',`products.${i}.rows`,`products.${i}.totals.purchases`)+calcRow('averageCost','Costo promedio unitario',`products.${i}.rows`,null)+calcRow('inventory','Inventario final · valor',`products.${i}.rows`,`products.${i}.rows.${r.periods.length-1}.inventory`)+calcRow('costSales','Costo de ventas',`products.${i}.rows`,`products.${i}.totals.costSales`))}`)).join('')}${table('Costo consolidado',calcRow('costSales','Total costo de ventas'))}`;
+    if(stage===4)return `${help}${check('expensesNone','Este ejercicio no incluye gastos operativos')}<div class="budget-actions"><button class="button button-secondary" data-action="expense">Agregar gasto manual</button><button class="button button-secondary" data-action="history">Importar gastos del Estado de Resultados</button></div>${field('historyMonths','Meses que comprende el Estado de Resultados histórico')}<p class="budget-formula">Base por período = importe histórico ÷ meses históricos × meses proyectados. El ajuste se aplica a esa base en cada período.</p><p class="budget-help">Clasifica cada cuenta una sola vez. Si los gastos históricos incluyen depreciación, separa esa cuenta antes de añadir otra depreciación.</p>${draft.expenses.map((e,i)=>box(e.label||`Gasto ${i+1}`,`<div class="budget-grid">${field(`expenses.${i}.label`,'Nombre del gasto','text')}${select(`expenses.${i}.category`,'Clasificación',[['unclassified','Seleccionar clasificación'],['administration','Administración'],['selling','Ventas'],['depreciation','Depreciación (opcional)']])}${select(`expenses.${i}.mode`,'Modo de captura',[['manual','Entrada manual'],['historical','Referencia histórica'],['adjusted','Histórico con ajuste']])}${e.mode!=='manual'?select(`expenses.${i}.sourceId`,'Cuenta histórica',[['','Seleccionar cuenta'],...model.income.filter(a=>a.category==='opex').map(a=>[a.id,a.name])])+select(`expenses.${i}.side`,'Período histórico',[['current',String(model.periods.current)],['previous',String(model.periods.previous)]]):''}${e.mode==='adjusted'?select(`expenses.${i}.adjustmentType`,'Tipo de ajuste',[['percent','Porcentaje sobre la base'],['amount','Importe por período']])+field(`expenses.${i}.adjustment`,'Ajuste · admite reducción negativa'):''}</div>${e.mode!=='manual'?`<p class="budget-help">Histórico de origen: ${out(`expenseRows.${i}.historical`)} · ${esc(model.periods[e.side||'current'])}.</p>`:''}${table('Gasto proyectado',e.mode==='manual'?entryRow(`expenses.${i}.values`,e.label):row(e.label,r.periods.map(p=>out(`expenseRows.${i}.amounts.${p.key}`))))}<button class="button button-ghost" data-remove-expense="${i}">Retirar gasto</button>`)).join('')}${table('Gastos consolidados',calcRow('administration','Administración')+calcRow('selling','Ventas')+calcRow('depreciation','Depreciación · incluida una vez')+calcRow('operatingExpenses','Total gastos operativos'))}`;
+    if(stage===5)return `${help}<div class="budget-grid">${select('result.interestMode','Intereses',[['none','Sin intereses'],['manual','Importe manual'],['historical','Referencia histórica'],['debt','Calcular desde deuda']])}${select('result.taxMode','Impuesto sobre la renta',[['pending','Seleccionar tratamiento'],['rate','Tasa sobre base imponible'],['manual','Importe manual'],['none','No aplica']])}${draft.result.taxMode==='rate'?field('result.taxRate','Tasa de ISR · %'):''}${draft.result.interestMode==='historical'?field('historyMonths','Meses del Estado de Resultados histórico'):''}</div>${draft.result.interestMode==='debt'?box('Supuesto de deuda al inicio',`<div class="budget-grid">${field('result.debt.principal','Capital pendiente')}${field('result.debt.annualRate','Tasa nominal anual · %')}${field('result.debt.termMonths','Plazo pendiente · meses')}${select('result.debt.amortization','Amortización',[['equalPrincipal','Capital constante mensual'],['interestOnly','Capital al vencimiento']])}</div><p class="budget-help">Interés mensual sobre saldo inicial; tasa anual ÷ 12. Los períodos anuales acumulan 12 cuotas. La caja puede incorporar estas amortizaciones en la etapa avanzada.</p>`):''}${check('result.otherEnabled','Incluir otros ingresos y gastos')}${table('Supuestos del resultado',(draft.result.interestMode==='manual'?entryRow('result.interest','Intereses manuales'):'')+(draft.result.taxMode==='manual'?entryRow('result.taxes','ISR manual'):'')+(draft.result.taxMode==='rate'?entryRow('result.taxAdjustments','Ajustes a base imponible',0):'')+(draft.result.otherEnabled?entryRow('result.otherIncome','Otros ingresos')+entryRow('result.otherExpenses','Otros gastos'):''))}<p class="budget-formula">Utilidad antes de impuestos = utilidad operativa + otros ingresos − otros gastos − intereses<br>ISR por tasa = máximo(0, utilidad antes de impuestos + ajustes) × tasa. No utiliza el saldo de impuestos del balance.</p>${table('Estado de Resultados proyectado',[['sales','Ventas'],['costSales','− Costo de ventas'],['grossProfit','= Utilidad bruta'],['operatingExpenses','− Gastos operativos'],['ebit','= Utilidad operativa'],['otherIncome','+ Otros ingresos'],['otherExpenses','− Otros gastos'],['interest','− Intereses'],['ebt','= Utilidad antes de impuestos'],['taxes','− ISR'],['netProfit','= Utilidad neta']].map(([k,l])=>calcRow(k,l)).join(''))}`;
+    const a=draft.advanced,manual=a.openingSource==='manual';
+    return `${check('advanced.enabled','Activar presupuesto de caja y Balance General proforma')}${!a.enabled?'<p class="budget-help">Ventas, compras, costos y resultados pueden completarse sin activar esta etapa.</p>':`<div class="budget-grid">${select('advanced.openingSource','Saldos de partida',[['automatic','Balance actual de la empresa'],['manual','Saldos manuales de la proyección']])}${field('advanced.collectionPercent','Ventas cobradas en el mismo período · %')}${field('advanced.paymentPercent','Compras pagadas en el mismo período · %')}</div><details><summary>Saldos al inicio del horizonte</summary><div class="budget-grid">${Object.entries(B.openingFields).map(([k,l])=>manual?field(`advanced.opening.${k}`,l):`<label>${esc(l)}<strong>${money(r.automatic.amounts[k])}</strong></label>`).join('')}</div><p class="budget-help"><a href="../estados-financieros/index.html">Revisar balance histórico</a>. El valor inicial de inventario debe coincidir con la suma de los productos.</p></details>${check('advanced.useDebtSchedule','Incluir amortizaciones del cálculo de deuda en caja y balance')}<p class="budget-help">Crédito restante: se cobra/paga en el período siguiente (${draft.config.frequency==='annual'?'año':'mes'}). Cuentas iniciales por cobrar/pagar: primer período. Gastos, otros ingresos/gastos, intereses, impuestos, inversiones y dividendos: al contado en cada período. Depreciación sin salida de caja. Otros saldos constantes. Los movimientos adicionales no informados se consideran 0.</p>${table('Movimientos adicionales',row('Inversiones al contado',r.periods.map(p=>input(`advanced.values.${p.key}.capex`,`Inversiones · ${p.label}`,'number',0)))+row('Préstamos netos (+ ingreso / − pago)',r.periods.map(p=>input(`advanced.values.${p.key}.financing`,`Préstamos netos · ${p.label}`,'number',0)))+row('Dividendos',r.periods.map(p=>input(`advanced.values.${p.key}.dividends`,`Dividendos · ${p.label}`,'number',0))))}${check('advanced.confirmed','Revisé fechas, saldos de apertura y los supuestos de cobro/pago descritos. No se añade financiamiento automático para cubrir déficits.')}${table('Presupuesto de caja',[['openingCash','Caja inicial'],['collections','Cobros de ventas'],['payments','Pagos de compras'],['opex','Gastos pagados'],['otherIncome','Otros ingresos'],['otherExpenses','Otros gastos'],['interest','Intereses'],['taxes','ISR'],['capex','Inversiones'],['financing','Préstamos netos'],['dividends','Dividendos'],['cashMovement','Movimiento neto'],['cash','Caja final']].map(([k,l])=>calcRow(k,l,'rows',['cash','openingCash'].includes(k)?`rows.${k==='cash'?r.periods.length-1:0}.${k}`:`totals.${k}`)).join(''))}<p class="budget-formula">Caja final = caja inicial + cobros − pagos + financiamiento neto<br>Activos al cierre: ${out('closing.assets')} · Pasivos y patrimonio: ${out('closing.funding')} · Diferencia: ${out('closing.difference')}</p>`}`;
+  }
+  editor.addEventListener('input',e=>{
+    const el=e.target;if(!el.dataset.path||el.tagName==='SELECT'||el.type==='checkbox')return;
+    const v=el.dataset.kind==='number'?P.parseAmount(el.value):el.value;put(el.dataset.path,Number.isNaN(v)?el.value:v);
+    if(el.dataset.path.startsWith('config.'))delete draft.legacyKeys;
+    mark();
   });
-  editor.addEventListener('click', event => {
-    const button = event.target.closest('[data-remove-month]');
-    if (!button || draft.months.length <= 1) return;
-    draft.months.splice(Number(button.dataset.removeMonth), 1); markDirty(); renderEditor(); renderResults();
+  editor.addEventListener('change',e=>{
+    const el=e.target;
+    if(el.id==='budget-duration'&&el.value){draft.config.count=Number(el.value);delete draft.legacyKeys;mark();render();return;}
+    if(!el.dataset.path)return;
+    if(el.tagName==='SELECT'||el.type==='checkbox'){
+      put(el.dataset.path,el.type==='checkbox'?el.checked:el.value);
+      if(el.dataset.path==='advanced.confirmed'){draft.advanced.baseSignature=B.signature(model);dirty=true;refresh();}
+      else {if(el.dataset.path.startsWith('config.'))delete draft.legacyKeys;mark();render();}
+    } else if(el.dataset.path.startsWith('config.'))render();
   });
-  function save(event) {
-    event.preventDefault();
-    const current = C.store.active(), error = document.getElementById('budget-save-error');
-    if (current.id !== model.id || JSON.stringify(current) !== snapshot) { error.textContent = 'La empresa cambió en otra vista. Conserva tus cambios y recarga antes de guardar para evitar sobrescribir datos nuevos.'; return; }
-    const previous = current.params?.budget;
-    current.params ||= {};
-    if (previous && previous.context !== B.context(current)) {
-      current.params.budgetArchive ||= []; current.params.budgetArchive.push(previous);
-    }
-    current.params.budget = structuredClone(draft);
-    saving = true; const persisted = C.store.save(current); saving = false;
-    model = C.store.active(); snapshot = JSON.stringify(model); dirty = false; drafts.delete(getDraftKey(model));
-    document.getElementById('budget-save-state').textContent = persisted ? 'Presupuesto guardado en este navegador.' : 'Solo guardado en memoria. El navegador no permitió conservarlo al cerrar.';
-    error.textContent = ''; renderResults();
+  editor.addEventListener('click',e=>{
+    const el=e.target.closest('button');if(!el)return;
+    if(el.dataset.step!==undefined){stage=Number(el.dataset.step);render();return;}
+    if(el.dataset.removeProduct!==undefined){draft.products.splice(Number(el.dataset.removeProduct),1);mark();render();return;}
+    if(el.dataset.removeExpense!==undefined){draft.expenses.splice(Number(el.dataset.removeExpense),1);mark();render();return;}
+    switch(el.dataset.action){
+      case 'save':save();return;
+      case 'reload':drafts.delete(model.id);localDrafts.clear();dirty=false;load();return;
+      case 'new':if(dirty)preserveLocal();draft=B.newProjection(model);stage=0;break;
+      case 'copy':if(dirty)preserveLocal();draft=structuredClone(draft);draft.id=C.store.newId('projection');draft.name+=' · copia';draft.context=B.context(model);break;
+      case 'product':draft.products.push(B.newProduct(undefined,`Producto ${draft.products.length+1}`));break;
+      case 'expense':draft.expensesNone=false;draft.expenses.push({id:C.store.newId('expense'),label:'Nuevo gasto',category:'unclassified',mode:'manual',side:'current',adjustmentType:'percent',adjustment:0,values:{}});break;
+      case 'history':{const accounts=B.historicalExpenses(model).filter(h=>!draft.expenses.some(e=>e.sourceId===h.sourceId));draft.expenses.push(...accounts);draft.expensesNone=false;if(!accounts.length)window.Finora.toast('No hay cuentas de gasto nuevas para importar.');break;}
+      case 'import':openImport();return;
+      case 'template':downloadTemplate();return;
+      case 'next':stage++;render();return;
+      case 'previous':stage--;render();return;
+      default:return;
+    }mark();render();
+  });
+  function save(){
+    const current=C.store.active(),error=document.getElementById('budget-save-error');
+    if(current.id!==model.id||JSON.stringify(current)!==snapshot){error.textContent='La empresa cambió en otra vista. Recarga antes de guardar para evitar sobrescribir esos cambios.';return;}
+    if(!draft.name.trim()){error.textContent='Asigna un nombre a la proyección.';return;}
+    try{saving=true;const persisted=C.store.save(B.saveProjection(current,draft));model=C.store.active();snapshot=JSON.stringify(model);dirty=false;drafts.delete(model.id);localDrafts.delete(projectionKey(draft));render();document.getElementById('budget-save-state').textContent=persisted?'Proyección guardada en este navegador.':'Solo guardada en memoria; el navegador no permitió conservarla al cerrar.';}catch(err){error.textContent=err.message;}finally{saving=false;}
   }
-  function resultTable(title, columns, rows) {
-    return `<section class="panel budget-section"><div class="panel-header"><h2 class="panel-title">${esc(title)}</h2></div><div class="budget-scroll"><table class="data-table"><thead><tr><th scope="col">Mes</th>${columns.map(([, label]) => `<th scope="col" class="table-number">${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr><th scope="row">${esc(r.month || 'Pendiente')}</th>${columns.map(([key,,unit]) => `<td class="table-number">${esc(unit === 'units' ? plain(r[key]) : money(r[key]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`;
+  function library(){if(window.XLSX)return Promise.resolve(window.XLSX);if(!libraryPromise)libraryPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='../../assets/vendor/sheetjs/xlsx.full.min.js';script.onload=()=>resolve(window.XLSX);script.onerror=()=>{libraryPromise=null;script.remove();reject(new Error('No se pudo cargar el lector local.'));};document.head.append(script);});return libraryPromise;}
+  function downloadTemplate(){
+    const quote=v=>'"'+String(v).replaceAll('"','""')+'"';
+    const lines=[Object.values(I.projectionLabels),...draft.products.flatMap(p=>r.periods.map(k=>[p.name,k.key,'','','','']))];
+    const url=URL.createObjectURL(new Blob(['\uFEFF'+lines.map(l=>l.map(quote).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='plantilla-presupuesto.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
-  function renderResults() {
-    const r = B.analyze(model, draft);
-    const title = r.status === 'ready' ? 'Presupuesto calculado' : r.status === 'review' ? 'Presupuesto calculado · revisar alertas' : 'Presupuesto incompleto';
-    results.innerHTML = `<div class="budget-status" data-state="${r.status}"><strong>${title}</strong><p>${dirty ? 'Vista previa con cambios sin guardar.' : 'La proforma utiliza estos mismos cálculos.'} ${model.sample ? 'Datos de un caso de ejemplo.' : ''} Los espacios sin información aparecen como —.</p>${r.issues.length ? `<details><summary>${r.issues.length} datos o revisiones pendientes</summary><ul>${r.issues.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>` : ''}${r.warnings.length ? `<ul>${r.warnings.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}</div>
-      <div class="budget-flow" aria-label="Presupuestos conectados"><span>Ventas</span><span>Compras e inventario</span><span>Costo de ventas</span><span>Gastos y resultados</span><span>Caja</span><span>Proforma</span></div>
-      ${resultTable('Ventas, compras e inventario', [['units','Ventas · unidades','units'],['sales','Ventas'],['purchaseUnits','Compras · unidades','units'],['purchases','Compras'],['endingUnits','Inventario final · unidades','units'],['inventory','Inventario final'],['costSales','Costo de ventas']], r.rows)}
-      ${resultTable('Gastos y estado de resultados', [['sales','Ventas'],['costSales','Costo de ventas'],['grossProfit','Utilidad bruta'],['operatingExpenses','Gastos + depreciación'],['otherIncome','Otros ingresos'],['interest','Intereses'],['taxes','Impuestos'],['netProfit','Utilidad neta']], r.rows)}
-      ${resultTable('Presupuesto de caja', [['openingCash','Saldo inicial'],['collections','Cobros de ventas'],['payments','Pagos de compras'],['opex','Gastos pagados'],['otherIncome','Otros ingresos'],['interest','Intereses'],['taxes','Impuestos'],['capex','Inversiones'],['financing','Préstamos netos'],['dividends','Dividendos'],['cash','Saldo final']], r.rows)}
-      <p class="budget-help">Costo promedio ponderado = valor disponible ÷ unidades disponibles. Compras = máximo de 0 y ventas + inventario objetivo − inventario inicial. El cierre de cada mes alimenta el inicio del siguiente. <a class="link" href="../proforma/index.html">Ver resultados acumulados y balance proforma →</a></p>`;
+  function openImport(){
+    const original=JSON.stringify(draft),companySnapshot=JSON.stringify(C.store.active());
+    const dialog=window.Finora.openDialog('Importar datos de presupuesto',`<p>Configura primero fecha y horizonte. Puedes importar una tabla por producto y período, o una hoja de supuestos con períodos en columnas como «Datos» del ejercicio. Revisa antes de aplicar; después podrás editar cada entrada.</p><p>Importes en ${esc(C.fmt.unit(model))}. Archivo local de hasta 10 MB.</p><input type="file" id="budget-file" accept=".xlsx,.csv" aria-label="Archivo de presupuesto"><p id="budget-file-error" class="budget-error" role="alert"></p><div id="budget-file-options"></div><button class="button button-ghost" id="budget-import-cancel">Cancelar</button>`);
+    dialog.classList.add('budget-import-dialog');const options=dialog.querySelector('#budget-file-options'),error=dialog.querySelector('#budget-file-error');let wb,data,mapping,preview,generation=0,closed=false;
+    dialog.addEventListener('close',()=>{closed=true;generation++;});dialog.querySelector('#budget-import-cancel').onclick=()=>dialog.close();
+    function invalidate(){preview=null;options.querySelector('#budget-import-apply')?.setAttribute('disabled','');const view=options.querySelector('#budget-file-preview');if(view)view.innerHTML='';}
+    function readSheet(){data=T.sheetData(wb,options.querySelector('#budget-file-sheet').value,window.XLSX);const head=data.rows[0]||[],norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');mapping=Object.fromEntries(Object.entries(I.projectionLabels).map(([key,label])=>[key,head.findIndex(v=>[norm(key),norm(label),key==='period'?'mes':''].filter(Boolean).includes(norm(v)))]));options.querySelector('#budget-file-mapping').innerHTML=`<div class="budget-grid">${Object.entries(I.projectionLabels).map(([k,l])=>`<label>${l}<select class="select" data-column="${k}"><option value="-1">Sin columna</option>${head.map((v,i)=>`<option value="${i}"${mapping[k]===i?' selected':''}>${i+1} · ${esc(v??'')}</option>`).join('')}</select></label>`).join('')}</div>`;invalidate();}
+    dialog.querySelector('#budget-file').onchange=async e=>{const file=e.target.files[0],ticket=++generation;options.innerHTML='';error.textContent='';if(!file)return;try{
+      if(file.size>T.MAX_BYTES)throw new Error('El archivo supera 10 MB.');const XLSX=await library(),bytes=new Uint8Array(await file.arrayBuffer());if(closed||ticket!==generation)return;wb=T.read(bytes,file.name,XLSX);
+      options.innerHTML=`<div class="budget-grid"><label>Hoja<select class="select" id="budget-file-sheet">${T.sheets(wb).map(s=>`<option>${esc(s.name)}</option>`).join('')}</select></label><label>Formato<select class="select" id="budget-file-mode"><option value="flat">Producto y período por fila</option><option value="academic">Hoja de supuestos · períodos por columna</option></select></label></div><div id="budget-file-mapping"></div><div class="budget-actions"><button class="button button-secondary" id="budget-import-review">Revisar importación</button><button class="button button-primary" id="budget-import-apply" disabled>Usar estos datos</button></div><div class="budget-import-preview" id="budget-file-preview"></div>`;
+      options.querySelector('#budget-file-sheet').onchange=()=>{try{readSheet();error.textContent='';}catch(err){data=null;invalidate();error.textContent=err.message;}};
+      options.querySelector('#budget-file-mode').onchange=e=>{options.querySelector('#budget-file-mapping').hidden=e.target.value==='academic';invalidate();};
+      options.querySelector('#budget-file-mapping').onchange=e=>{if(e.target.dataset.column){mapping[e.target.dataset.column]=Number(e.target.value);invalidate();}};
+      options.querySelector('#budget-import-review').onclick=()=>{try{
+        if(!data)throw new Error('Selecciona una hoja válida.');const academic=options.querySelector('#budget-file-mode').value==='academic';
+        preview=academic?I.parseAcademic(data,model,draft):structuredClone(draft);
+        if(!academic)preview.products=I.parseProjection(data,draft.config,mapping).map(p=>{const old=draft.products.find(x=>x.name===p.name);return old?{...old,values:{...old.values,...p.values}}:p;});
+        preview.importSource={file:file.name,sheet:data.name,note:academic?'Inventario inicial valorizado con el primer costo de compra; verifica este supuesto. Se sustituyen productos, gastos, intereses e ISR de la proyección.':'Se sustituyen los productos por la tabla importada; los saldos y políticas de productos con el mismo nombre se conservan.'};
+        const review=B.analyze(model,preview);error.textContent='';options.querySelector('#budget-file-preview').innerHTML=`<p>${esc(preview.importSource.note)}</p><p>${preview.products.length} productos · ${review.periods.length} períodos · ventas: ${money(review.totals.sales)} · utilidad neta: ${money(review.totals.netProfit)}.</p><table class="data-table"><thead><tr><th>Producto</th><th>Período</th><th>Unidades</th><th>Precio</th><th>Costo de compra</th></tr></thead><tbody>${preview.products.flatMap(p=>review.periods.map(k=>`<tr><td>${esc(p.name)}</td><td>${k.label}</td><td>${plain(p.values[k.key]?.units)}</td><td>${money(p.values[k.key]?.price)}</td><td>${money(p.values[k.key]?.unitCost)}</td></tr>`)).join('')}</tbody></table><p>${review.issues.length} datos o revisiones pendientes; podrás completarlos manualmente.</p>`;options.querySelector('#budget-import-apply').disabled=false;
+      }catch(err){invalidate();error.textContent=err.message;}};
+      options.querySelector('#budget-import-apply').onclick=()=>{if(!preview)return;if(JSON.stringify(C.store.active())!==companySnapshot||JSON.stringify(draft)!==original){error.textContent='Los datos cambiaron durante la revisión. Cierra y vuelve a importar.';return;}draft=preview;mark();render();dialog.close();};readSheet();
+    }catch(err){if(!closed&&ticket===generation){error.textContent=err.message;options.innerHTML='';}}};
   }
-  function library() {
-    if (window.XLSX) return Promise.resolve(window.XLSX);
-    if (!libraryPromise) libraryPromise = new Promise((resolve, reject) => {
-      const script = document.createElement('script'); script.src = '../../assets/vendor/sheetjs/xlsx.full.min.js';
-      script.onload = () => resolve(window.XLSX); script.onerror = () => { libraryPromise = null; script.remove(); reject(new Error('No se pudo cargar el lector de archivos.')); }; document.head.append(script);
-    });
-    return libraryPromise;
-  }
-  function downloadTemplate() {
-    const csv = '\uFEFF' + Object.values(I.labels).join(';') + '\r\n';
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'plantilla-presupuesto.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  function openImport() {
-    const original = JSON.stringify(draft), company = model.id, companySnapshot = JSON.stringify(C.store.active());
-    const dialog = window.Finora.openDialog('Importar previsiones mensuales', `<p>Elige una hoja con un mes por fila. Usa AAAA-MM en Mes. Revisa las columnas y la vista previa: se reemplazarán únicamente los meses del formulario. Los saldos y políticas se conservan; luego pulsa Guardar y recalcular.</p><p class="budget-help">Importes y precios en ${esc(C.fmt.unit(model))}. Los archivos se leen en este navegador.</p><label class="field">Excel o CSV · hasta 10 MB<input type="file" id="budget-file" accept=".xlsx,.csv"></label><p class="budget-error" id="budget-file-error" role="alert"></p><div id="budget-file-options"></div><div class="budget-actions"><button type="button" class="button button-secondary" id="budget-import-cancel">Cancelar</button></div>`);
-    dialog.classList.add('budget-import-dialog');
-    const options = dialog.querySelector('#budget-file-options'), error = dialog.querySelector('#budget-file-error');
-    let workbook, data, mapping, header = 0, preview = null, generation = 0, closed = false;
-    dialog.addEventListener('close', () => { closed = true; generation++; }, { once: true });
-    dialog.querySelector('#budget-import-cancel').addEventListener('click', () => dialog.close());
-    function invalidate() { preview = null; options.querySelector('#budget-file-preview').innerHTML = ''; options.querySelector('#budget-import-apply').disabled = true; }
-    function mapView() {
-      mapping = I.suggest(data.rows[header] || []);
-      const max = Math.max(0, ...data.rows.map(row => row.length));
-      options.querySelector('#budget-file-mapping').innerHTML = `<div class="budget-grid">${Object.entries(I.labels).map(([key, label]) => `<label>${esc(label)}<select class="select" data-column="${key}"><option value="-1">Sin columna · pendiente</option>${Array.from({length:max}, (_, index) => `<option value="${index}"${mapping[key] === index ? ' selected' : ''}>${index + 1} · ${esc(data.rows[header]?.[index] ?? 'Sin encabezado')}</option>`).join('')}</select></label>`).join('')}</div>`;
-      invalidate();
-    }
-    async function selectSheet(name) {
-      data = null; invalidate();
-      data = T.sheetData(workbook, name, await library()); header = 0;
-      options.querySelector('#budget-header-row').value = '1'; mapView();
-    }
-    dialog.querySelector('#budget-file').addEventListener('change', async event => {
-      const file = event.target.files[0], ticket = ++generation; options.innerHTML = ''; error.textContent = ''; preview = null;
-      if (!file) return;
-      try {
-        if (file.size > T.MAX_BYTES) throw new Error('El archivo supera 10 MB.');
-        const XLSX = await library(), bytes = new Uint8Array(await file.arrayBuffer());
-        if (closed || generation !== ticket) return;
-        workbook = T.read(bytes, file.name, XLSX);
-        options.innerHTML = `<p><strong>${esc(file.name)}</strong></p><div class="budget-grid"><label>Hoja<select class="select" id="budget-file-sheet">${T.sheets(workbook).map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}</select></label><label>Fila de encabezados<input class="input" type="number" id="budget-header-row" min="1" value="1"></label></div><div id="budget-file-mapping"></div><div class="budget-actions"><button type="button" class="button button-secondary" id="budget-import-review">Revisar importación</button><button type="button" class="button button-primary" id="budget-import-apply" disabled>Usar estos meses</button></div><div class="budget-import-preview" id="budget-file-preview"></div>`;
-        options.querySelector('#budget-file-sheet').addEventListener('change', async e => { try { await selectSheet(e.target.value); error.textContent = ''; } catch (err) { error.textContent = err.message; invalidate(); } });
-        options.querySelector('#budget-header-row').addEventListener('change', e => {
-          header = Number(e.target.value) - 1;
-          if (!data || !Number.isInteger(header) || header < 0 || header >= data.rows.length) { error.textContent = 'Fila de encabezados inválida.'; invalidate(); return; }
-          error.textContent = ''; mapView();
-        });
-        options.querySelector('#budget-file-mapping').addEventListener('change', e => { if (e.target.dataset.column) { mapping[e.target.dataset.column] = Number(e.target.value); invalidate(); } });
-        options.querySelector('#budget-import-review').addEventListener('click', () => {
-          try {
-            if (!data) throw new Error('Elige una hoja válida antes de revisar.');
-            preview = I.parse(data, mapping, header); error.textContent = '';
-            options.querySelector('#budget-file-preview').innerHTML = `<p>${preview.length} meses. Revisa los valores antes de usarlos.</p><table class="data-table"><thead><tr>${Object.values(I.labels).map(v => `<th>${esc(v)}</th>`).join('')}</tr></thead><tbody>${preview.map(row => `<tr>${Object.keys(I.labels).map(k => `<td>${esc(k === 'month' ? row[k] : plain(row[k]))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-            options.querySelector('#budget-import-apply').disabled = false;
-          } catch (err) { invalidate(); error.textContent = err.message; }
-        });
-        options.querySelector('#budget-import-apply').addEventListener('click', () => {
-          if (!preview) return;
-          if (C.store.active().id !== company || JSON.stringify(C.store.active()) !== companySnapshot || JSON.stringify(draft) !== original) { error.textContent = 'Los datos cambiaron mientras revisabas el archivo. Cierra y vuelve a importar.'; return; }
-          draft.months = preview; draft.confirmed = false; draft.importSource = { file: file.name, sheet: data.name };
-          markDirty(); renderEditor(); renderResults(); dialog.close();
-        });
-        await selectSheet(workbook.SheetNames[0]);
-      } catch (err) { if (!closed && generation === ticket) { error.textContent = err.message; options.innerHTML = ''; } }
-    });
-  }
-  window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
   window.FinoraCaseBar.mount(document.getElementById('case-bar'));
-  C.store.subscribe(() => {
-    if (saving) return;
-    const current = C.store.active();
-    if (model && current.id === model.id && dirty) { notice.textContent = 'La empresa cambió en otra vista. Hay cambios locales sin guardar; recarga antes de guardar.'; return; }
-    load();
-  });
-  load();
+  C.store.subscribe(()=>{if(saving)return;if(model&&C.store.active().id===model.id&&dirty){notice.textContent='La empresa cambió en otra vista. Se conservan tus cambios locales; recarga antes de guardar.';return;}load();});load();
 })();

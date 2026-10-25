@@ -10,6 +10,7 @@
       document.querySelector(`#report-${item.dataset.report}`).hidden = !selected;
     });
     document.getElementById('paper-title').textContent = tab.dataset.report === 'income' ? 'Estado de resultados proforma' : 'Balance general proforma';
+    render();
   }
   tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => selectReport(tab));
@@ -27,19 +28,21 @@
     const row = (label, value, total = false) => `<tr${total ? ' class="statement-subtotal"' : ''}><th scope="row">${esc(label)}</th><td class="table-number">${esc(money(value))}</td></tr>`;
     const group = title => `<tr class="statement-group"><th colspan="2" scope="colgroup">${esc(title)}</th></tr>`;
     const period = r.rows[0]?.month && r.rows.at(-1)?.month ? `${r.rows[0].month} a ${r.rows.at(-1).month}` : 'Período pendiente de definir';
-    const state = !r.ready ? 'INCOMPLETO' : r.warnings.length ? 'REVISAR CAJA' : 'PROYECCIÓN PRESUPUESTADA';
+    const income = document.querySelector('[data-report="income"]').getAttribute('aria-selected') === 'true';
+    const ready = r.stages[income ? 'income' : 'balance'].ready;
+    const state = !ready ? !income && !r.settings.advanced.enabled ? 'ETAPA AVANZADA SIN ACTIVAR' : 'INCOMPLETO' : r.warnings.length ? 'PROYECCIÓN · REVISAR ALERTAS' : 'PROYECCIÓN PRESUPUESTADA';
     set('paper-company', c.name.toUpperCase()); set('paper-period', period);
     set('paper-currency', `Cifras en ${C.fmt.unit(c)}`); set('summary-currency', C.fmt.unit(c));
     set('budget-period-summary', period); set('paper-badge-status', `${c.sample ? 'EJEMPLO · ' : ''}${state}`);
-    set('proforma-data-source', c.sample ? 'Caso de ejemplo' : r.ready ? 'Presupuesto conectado' : 'Faltan datos');
-    set('proforma-data-desc', r.ready ? `Resultados del presupuesto guardado de ${c.name}.` : 'Completa y guarda los datos en Planeación y presupuestos. No se sustituyen faltantes por cifras de ejemplo.');
-    set('summary-months', String(r.rows.filter(row => B.nextMonth(row.month)).length));
+    set('proforma-data-source', c.sample ? 'Caso de ejemplo' : ready ? 'Presupuesto conectado' : 'Faltan datos');
+    set('proforma-data-desc', `${r.settings.name || 'Proyección'}. ${ready ? `Resultados guardados de ${c.name}.` : 'Completa y guarda esta etapa en Planeación y presupuestos.'}`);
+    set('summary-months', `${r.periods.length} ${r.settings.config.frequency === 'annual' ? 'años' : 'meses'}`);
     set('summary-cost-ratio', 'Promedio ponderado');
-    set('proforma-footnote', 'Ventas, compras, gastos y caja comparten el presupuesto mensual. El balance conserva los demás saldos según los supuestos confirmados.');
+    set('proforma-footnote', 'Resultados calculados desde los productos y períodos de la proyección guardada. Caja y balance se calculan al activar la etapa avanzada; los históricos se conservan.');
     document.getElementById('income-proforma-body').innerHTML = group('RESULTADOS DEL PERÍODO') +
       row('Ventas presupuestadas', t.sales) + row('Costo de ventas', t.costSales) + row('Utilidad bruta', t.grossProfit, true) +
-      row('Gastos operativos pagados', t.opex) + row('Depreciación', t.depreciation) + row('Utilidad operativa', t.ebit, true) +
-      row('Otros ingresos', t.otherIncome) + row('Intereses', t.interest) + row('Impuestos', t.taxes) + row('Utilidad neta proyectada', t.netProfit, true);
+      row('Gastos administrativos', t.administration) + row('Gastos de ventas', t.selling) + row('Depreciación', t.depreciation) + row('Utilidad operativa', t.ebit, true) +
+      row('Otros ingresos', t.otherIncome) + row('Otros gastos', t.otherExpenses) + row('Intereses', t.interest) + row('Utilidad antes de impuestos', t.ebt, true) + row('Impuesto sobre la renta', t.taxes) + row('Utilidad neta proyectada', t.netProfit, true);
     const margin = Number.isFinite(t.netProfit) && t.sales > 0 ? t.netProfit / t.sales * 100 : null;
     set('proforma-net-margin', margin === null ? '—' : `${margin.toFixed(2)}%`);
     set('proforma-margin-desc', margin === null ? 'Se requieren ventas positivas y un resultado completo para calcular el margen.' : 'Utilidad neta del presupuesto dividida entre las ventas del mismo período.');
@@ -51,9 +54,10 @@
       row('Deuda a largo plazo', b.longDebt) + row('Otros pasivos no corrientes', b.otherNonCurrentLiabilities) + row('Total pasivos', b.liabilities, true) +
       row('Patrimonio inicial', r.opening.equity) + row('Utilidad neta del período', t.netProfit) + row('Dividendos distribuidos', t.dividends) +
       row('Patrimonio al cierre', b.equity, true) + row('Total pasivos y patrimonio', b.funding, true) + row('Diferencia por revisar', b.difference);
-    set('balance-equation-msg', !r.ready ? 'Balance pendiente: completa los datos y revisa los supuestos antes de usar esta proyección.' : r.warnings.length ? 'La ecuación contable cuadra; revisa las alertas de caja e inventario indicadas abajo.' : 'Activos = pasivos + patrimonio. La caja procede de los cobros y pagos presupuestados.');
-    const notices = [...r.issues, ...r.warnings];
-    const policy = `Base ${r.settings.openingSource === 'manual' ? 'manual' : 'del balance actual'}; costo promedio ponderado mensual. El crédito restante vence al mes siguiente y los saldos iniciales por cobrar/pagar se liquidan en el primer mes. Los demás saldos se mantienen constantes. Sin financiamiento automático para cubrir déficits.`;
+    set('balance-equation-msg', !r.settings.advanced.enabled ? 'Activa Caja y proforma avanzado en Planeación para preparar este balance.' : !r.stages.balance.ready ? 'Balance pendiente: completa los datos y revisa los supuestos antes de usar esta proyección.' : r.warnings.length ? 'La ecuación contable cuadra; revisa las alertas de caja e inventario indicadas abajo.' : 'Activos = pasivos + patrimonio. La caja procede de los cobros y pagos presupuestados.');
+    const activeStages = income ? ['configuration','sales','purchases','costs','expenses','income'] : Object.keys(r.stages);
+    const notices = [...new Set(activeStages.flatMap(k => [...r.stages[k].issues, ...r.stages[k].warnings]))];
+    const policy = `Proyección: ${r.settings.name}. Costo promedio ponderado periódico, por producto. ${!income && r.settings.advanced.enabled ? `Base ${r.settings.advanced.openingSource === 'manual' ? 'manual' : 'del balance actual'}. Crédito restante al período siguiente; saldos iniciales por cobrar/pagar en el primero. Otros saldos constantes. Sin financiamiento automático para déficits.` : 'El ISR usa el tratamiento configurado en el presupuesto. Los espacios pendientes se muestran como —.'}`;
     set('paper-notes-text', `${c.sample ? 'CASO DE EJEMPLO. ' : ''}${state}. ${policy}`);
     document.getElementById('proforma-pending').innerHTML = notices.length ? `<strong>Pendientes y alertas</strong><ul>${notices.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : '';
     window.Finora.hydrateIcons();
