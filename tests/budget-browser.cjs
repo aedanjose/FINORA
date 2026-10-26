@@ -56,6 +56,34 @@ function file(){
     await proforma.click('#tab-balance');await proforma.waitForFunction(()=>!document.getElementById('paper-badge-status').textContent.includes('INCOMPLETO'));assert.match(await proforma.locator('#balance-equation-msg').innerText(),/Activos = pasivos/);
     console.log('ok caja avanzada y balance conciliado');
 
+    assert.equal(await page.locator('#budget-editor .cash-budget').count(),3);
+    assert.equal(await page.locator('[data-path="advanced.values.2026-10.minimumCash"]').inputValue(),'');
+    assert.equal(await page.locator('#cash-minimum-pending').isVisible(),true);
+    await fill('advanced.values.2026-10.minimumCash',70000);
+    await fill('advanced.values.2026-11.minimumCash',0);await fill('advanced.values.2026-12.minimumCash',0);
+    assert.match(await page.locator('#budget-editor [data-output="rows.0.cashShortfall"]').innerText(),/8,190.00/);
+    assert.equal(await page.locator('#budget-editor [data-output="rows.0.cashShortfall"]').evaluate(el=>el.classList.contains('cash-highlight')),true);
+    assert.match(await page.locator('#budget-results').innerText(),/inferior al mínimo/);
+    await fill('advanced.values.2026-10.financing',8190);
+    assert.match(await page.locator('#budget-editor [data-output="rows.0.cash"]').innerText(),/70,000.00/);
+    assert.match(await page.locator('#budget-editor [data-output="rows.0.financingRequired"]').innerText(),/8,190.00/);
+    assert.match(await page.locator('#budget-editor [data-output="rows.0.remainingShortfall"]').innerText(),/0.00/);
+    await page.check('[data-path="advanced.confirmed"]');await save();
+    r=await analysis();assert.equal(r.cashMinimum.ready,true);assert.equal(r.closing.difference,0);assert.equal(r.totals.netProfit,60900);
+    await page.reload();await step(6);assert.equal(await page.locator('[data-path="advanced.values.2026-10.minimumCash"]').inputValue(),'70000');
+    await page.emulateMedia({media:'print'});
+    assert.equal(await page.locator('.cash-print-report').isVisible(),true);assert.equal(await page.locator('.cash-print-report table').count(),3);
+    assert.equal(await page.locator('.cash-print-report input').count(),0);
+    assert.match(await page.locator('.cash-print-report').innerText(),/70,000.00/);
+    await page.emulateMedia({media:'screen'});
+    await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+1);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+    await page.setViewportSize({width:1440,height:1000});
+    await fill('advanced.values.2026-10.minimumCash',0);await fill('advanced.values.2026-10.financing',0);
+    await page.check('[data-path="advanced.confirmed"]');await save();
+    console.log('ok tres presupuestos, mínimo pendiente, faltante positivo, préstamo registrado, persistencia, impresión y móvil');
+
     const beforePersonal=await model(),inventory=await context.newPage();
     await inventory.goto(base+'/modulos/inventario/index.html');
     assert.equal(await inventory.locator('#summary-products').innerText(),'8');

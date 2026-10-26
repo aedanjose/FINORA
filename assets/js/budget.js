@@ -264,6 +264,7 @@
     const automatic = automaticOpening(c), source = adv.openingSource === 'manual' ? adv.opening || {} : automatic.amounts;
     const opening = Object.fromEntries(Object.keys(openingFields).map(k => [k, null]));
     let openingDifference = null;
+    const cashMinimum = { ready: false, issues: [] };
     let closing = { ...opening, currentAssets: null, nonCurrentAssets: null, assets: null, liabilities: null, funding: null, difference: null };
     if (adv.enabled) {
       for (const [k,label] of Object.entries(openingFields)) opening[k] = value('balance', source[k], `${label} inicial`, { signed: k === 'equity' });
@@ -278,28 +279,53 @@
       const collection = value('cash', adv.collectionPercent, 'Porcentaje de cobro en el mismo período', { max: 100 });
       const payment = value('cash', adv.paymentPercent, 'Porcentaje de pago en el mismo período', { max: 100 });
       if (!adv.confirmed || adv.baseSignature !== signature(c)) { issue('cash', 'Revisa y confirma las fechas, los saldos y los supuestos de caja.'); issue('balance', 'Revisa y confirma los supuestos del balance proforma.'); }
-      let cash = opening.cash, receivables = opening.receivables, payables = opening.payables, previousSales = opening.receivables, previousPurchases = opening.payables;
+      let cash = opening.cash, receivables = opening.receivables, payables = opening.payables, previousSales = 0, previousPurchases = 0;
       let fixed = opening.fixed, longDebt = opening.longDebt, equity = opening.equity;
       if (adv.useDebtSchedule && result.interestMode !== 'debt') issue('cash', 'Para incorporar amortizaciones selecciona primero intereses calculados desde una deuda.');
       if (adv.useDebtSchedule && finite(principal) && finite(longDebt) && principal > longDebt) issue('balance', 'La deuda del cálculo de intereses supera la deuda de largo plazo inicial.');
-      for (const row of r.rows) {
+      for (const [index, row] of r.rows.entries()) {
         const movements = adv.values?.[row.month] || {};
         for (const key of ['capex','financing','dividends']) row[key] = value('cash', Object.hasOwn(movements,key) ? movements[key] : 0, `${fields[key]} · ${row.month}`, { signed: key === 'financing' });
         if (adv.useDebtSchedule) row.financing = calc((net,paid) => net-paid, row.financing, row.principalPayment);
-        row.collections = calc((sales,pct,old) => sales*pct/100+old,row.sales,collection,previousSales);
-        row.payments = calc((buys,pct,old) => buys*pct/100+old,row.purchases,payment,previousPurchases);
+        row.currentCollections = calc((sales,pct) => sales*pct/100,row.sales,collection);
+        row.creditCollections = previousSales;
+        row.initialReceivablesCollected = index === 0 ? opening.receivables : 0;
+        row.collections = sum([row.currentCollections,row.creditCollections,row.initialReceivablesCollected]);
+        row.currentPayments = calc((buys,pct) => buys*pct/100,row.purchases,payment);
+        row.creditPayments = previousPurchases;
+        row.initialPayablesPaid = index === 0 ? opening.payables : 0;
+        row.payments = sum([row.currentPayments,row.creditPayments,row.initialPayablesPaid]);
         previousSales = calc((sales,pct) => sales*(1-pct/100),row.sales,collection);
         previousPurchases = calc((buys,pct) => buys*(1-pct/100),row.purchases,payment);
         receivables = row.receivables = calc((start,sold,paid)=>start+sold-paid,receivables,row.sales,row.collections);
         payables = row.payables = calc((start,bought,paid)=>start+bought-paid,payables,row.purchases,row.payments);
         row.openingCash = cash;
-        row.cashMovement = calc((collected,paid,op,other,extra,int,tax,capex,net,div)=>collected-paid-op+other-extra-int-tax-capex+net-div,
-          row.collections,row.payments,row.opex,row.otherIncome,row.otherExpenses,row.interest,row.taxes,row.capex,row.financing,row.dividends);
-        cash = row.cash = sum([cash,row.cashMovement]);
+        row.cashInflows = sum([row.collections,row.otherIncome]);
+        row.cashAvailable = sum([row.openingCash,row.cashInflows]);
+        row.taxesAndInterest = sum([row.taxes,row.interest]);
+        row.otherDisbursements = sum([row.capex,row.otherExpenses,row.dividends]);
+        row.cashOutflows = sum([row.payments,row.opex,row.taxesAndInterest,row.otherDisbursements]);
+        row.cashBeforeFinancing = calc((available,outflows)=>available-outflows,row.cashAvailable,row.cashOutflows);
+        row.cashMovement = calc((inflows,outflows,net)=>inflows-outflows+net,row.cashInflows,row.cashOutflows,row.financing);
+        cash = row.cash = sum([row.cashBeforeFinancing,row.financing]);
+        // El mínimo es un supuesto de liquidez, no una salida ni un préstamo.
+        // Su ausencia en versiones anteriores no invalida sus saldos contables.
+        row.minimumCash = null;
+        if (movements.minimumCash === null || movements.minimumCash === undefined || movements.minimumCash === '') {
+          cashMinimum.issues.push(`${row.month}: informa el saldo mínimo de efectivo; usa 0 si no se exige una reserva.`);
+        } else {
+          row.minimumCash = value('cash',movements.minimumCash,`Saldo mínimo de efectivo · ${row.month}`);
+          if (row.minimumCash === null) cashMinimum.issues.push(`${row.month}: el saldo mínimo debe ser un número no negativo.`);
+        }
+        row.cashSurplus = calc((before,minimum)=>Math.max(0,before-minimum),row.cashBeforeFinancing,row.minimumCash);
+        row.cashShortfall = calc((before,minimum)=>Math.max(0,minimum-before),row.cashBeforeFinancing,row.minimumCash);
+        row.financingRequired = row.cashShortfall;
+        row.remainingShortfall = calc((ending,minimum)=>Math.max(0,minimum-ending),cash,row.minimumCash);
         fixed = row.fixed = calc((start,bought,dep)=>start+bought-dep,fixed,row.capex,row.depreciation);
         longDebt = row.longDebt = sum([longDebt,row.financing]);
         equity = row.equity = calc((start,profit,div)=>start+profit-div,equity,row.netProfit,row.dividends);
         if (finite(cash) && cash < -.01) state.cash.warnings.push(`${row.month}: déficit de caja de ${C.fmt.money(-cash,c)}. No se agrega financiamiento automático.`);
+        if (finite(row.remainingShortfall) && row.remainingShortfall > .01) state.cash.warnings.push(`${row.month}: la caja final es inferior al mínimo en ${C.fmt.money(row.remainingShortfall,c)}. Revisa el financiamiento efectivamente registrado.`);
         if (finite(fixed) && fixed < -.01) issue('balance', `${row.month}: la depreciación supera los activos fijos disponibles.`);
         if (finite(longDebt) && longDebt < -.01) issue('balance', `${row.month}: la amortización supera la deuda de largo plazo.`);
       }
@@ -312,12 +338,14 @@
     }
     const dependencies = { configuration: [], sales: ['configuration'], purchases: ['sales'], costs: ['purchases'], expenses: ['configuration'], income: ['costs','expenses'], cash: ['income'], balance: ['cash'] };
     for (const key of stages) state[key].ready = (!['cash','balance'].includes(key) || !!adv.enabled) && !state[key].issues.length && dependencies[key].every(dep=>state[dep].ready);
-    const totals = Object.fromEntries(['sales','purchases','costSales','administration','selling','opex','depreciation','operatingExpenses','otherIncome','otherExpenses','interest','taxes','grossProfit','ebit','ebt','netProfit','collections','payments','capex','financing','dividends','cashMovement'].map(key=>[key,sum(r.rows.map(row=>row[key]))]));
+    cashMinimum.ready = !!adv.enabled && r.rows.length > 0 && !cashMinimum.issues.length && r.rows.every(row=>finite(row.cashSurplus) && finite(row.remainingShortfall));
+    const totals = Object.fromEntries(['sales','purchases','costSales','administration','selling','opex','depreciation','operatingExpenses','otherIncome','otherExpenses','interest','taxes','grossProfit','ebit','ebt','netProfit','collections','payments','capex','financing','dividends','cashMovement',
+      'currentCollections','creditCollections','initialReceivablesCollected','currentPayments','creditPayments','initialPayablesPaid','cashInflows','taxesAndInterest','otherDisbursements','cashOutflows'].map(key=>[key,sum(r.rows.map(row=>row[key]))]));
     const activeStages = adv.enabled ? stages : stages.filter(k=>!['cash','balance'].includes(k));
     const issues = [...new Set(activeStages.flatMap(k=>state[k].issues))], warnings = [...new Set(activeStages.flatMap(k=>state[k].warnings))];
     const ready = adv.enabled ? state.balance.ready : state.income.ready;
     delete r.issue; delete r.value;
-    return { ...r, expenseRows, stale, automatic, opening, openingDifference, closing, totals, issues, warnings, ready, status: ready ? warnings.length ? 'review' : 'ready' : 'incomplete' };
+    return { ...r, expenseRows, stale, automatic, opening, openingDifference, closing, totals, cashMinimum, issues, warnings, ready, status: ready ? warnings.length ? 'review' : 'ready' : 'incomplete' };
   }
   function saveProjection(c, projection) {
     if (projection.context !== context(c)) throw new Error('La proyección corresponde a otro contexto. Crea una copia revisada antes de guardarla.');
