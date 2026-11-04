@@ -131,18 +131,157 @@
         if (launchWorker()) list = await request('read', { bytes: bytes.buffer, name: file.name });
         else { workbook = T.read(bytes, file.name, await library()); list = T.sheets(workbook); }
         if (abort.signal.aborted || token !== generation) return;
-        for(const item of list.filter(item=>!item.hidden&&!excluded(item.name))) {
+        const visible = list.filter(item=>!item.hidden&&!excluded(item.name));
+        for(const item of visible) {
           try {
             const data=await readSheet(item.name), kind=nameKind(item.name)||P.detectKind(data.rows.map(r=>r.join(' ')).join(' '));
             if(kind && data.rows.length) detected[kind].push(item.name);
-          } catch(e) { /* Una hoja ajena o inválida no bloquea las demás; al elegirla se muestra su error. */ }
+          } catch(e) { /* Una hoja ajena o inválida no bloquea las demás */ }
           if(abort.signal.aborted||token!==generation) return;
         }
         container.querySelector('.file-drop-title').textContent = 'Cambiar archivo';
         const selection = container.querySelector('#file-selection'); selection.hidden=false;
-        selection.innerHTML = `<div class="import-destination"><strong>${esc(file.name)}</strong><span>${list.length} ${list.length===1?'hoja':'hojas'}</span></div>${detected.balance.length&&detected.income.length ? '<label class="import-confirm file-confirm"><input type="checkbox" id="file-both" checked>Importar balance general y estado de resultados juntos</label><p class="import-help">Se detectaron ambos estados. Puedes elegir cada hoja para revisar sus columnas. Después revisarás las cuentas del balance y de los resultados; se guardarán juntos al finalizar.</p>' : ''}<label class="field-label" for="file-sheet">Hoja del archivo</label><select class="select file-sheet" id="file-sheet">${list.map(item=>`<option value="${esc(item.name)}">${esc(item.name)}${item.hidden?' (oculta)':''}</option>`).join('')}</select><div id="file-mapping"></div>`;
-        const preferred = list.find(item=>item.name===options.selectedName) || list.find(item=>options.kind && (P.detectKind(item.name) || (/resultados?|income/i.test(item.name) ? 'income' : /balance/i.test(item.name) ? 'balance' : null))===options.kind && !item.hidden) || list.find(item=>!item.hidden) || list[0];
-        container.querySelector('#file-sheet').value=preferred.name; await loadSheet(preferred.name);
+
+        function showManualView(defaultSheetName) {
+          selection.innerHTML = `<div class="import-destination"><strong>${esc(file.name)}</strong><span>${list.length} ${list.length===1?'hoja':'hojas'}</span></div>${detected.balance.length&&detected.income.length ? '<label class="import-confirm file-confirm"><input type="checkbox" id="file-both" checked>Importar balance general y estado de resultados juntos</label><p class="import-help">Se detectaron ambos estados. Puedes elegir cada hoja para revisar sus columnas. Después revisarás las cuentas del balance y de los resultados; se guardarán juntos al finalizar.</p>' : ''}<label class="field-label" for="file-sheet">Hoja del archivo</label><select class="select file-sheet" id="file-sheet">${list.map(item=>`<option value="${esc(item.name)}">${esc(item.name)}${item.hidden?' (oculta)':''}</option>`).join('')}</select><div id="file-mapping"></div>`;
+          const preferred = list.find(item=>item.name===defaultSheetName) || list.find(item=>item.name===options.selectedName) || list.find(item=>options.kind && (P.detectKind(item.name) || (/resultados?|income/i.test(item.name) ? 'income' : /balance/i.test(item.name) ? 'balance' : null))===options.kind && !item.hidden) || list.find(item=>!item.hidden) || list[0];
+          container.querySelector('#file-sheet').value=preferred.name; loadSheet(preferred.name);
+        }
+
+        const D = window.FinoraSheetDetect;
+        let det = null;
+        if (D && visible.length) {
+          const sheetPairs = visible.map(item => ({ name: item.name, data: sheets.get(item.name) })).filter(item => item.data);
+          det = D.detectWorkbook(sheetPairs);
+        }
+
+        if (det && (det.choice.balance || det.choice.income)) {
+          let chosen = { balance: det.choice.balance, income: det.choice.income };
+          function renderDetection() {
+            const b = chosen.balance ? D.pick(det, 'balance', chosen.balance) : null;
+            const i = chosen.income ? D.pick(det, 'income', chosen.income) : null;
+            const kinds = [
+              { kind: 'balance', title: 'Balance general', item: b },
+              { kind: 'income', title: 'Estado de resultados', item: i }
+            ];
+
+            const cardHtml = ({ kind, title, item }) => {
+              if (!item) {
+                return `<div class="detect-card"><div class="detect-card-header"><h3 class="detect-card-title">${title}</h3></div><p class="import-help">No se detectó hoja de ${title.toLowerCase()}. Puedes buscarla en configuración manual.</p></div>`;
+              }
+              const hasChoices = det.ambiguous[kind] && det.candidates[kind].length > 1;
+              const selectHtml = hasChoices ? `<label class="import-help">Hoja detectada:<select class="select detect-choice" data-kind="${kind}">${det.candidates[kind].map(c => `<option value="${esc(c.name)}"${c.name===item.name?' selected':''}>${esc(c.name)} (${c.years.previous}–${c.years.current})</option>`).join('')}</select></label>` : `<span>Hoja: <strong>${esc(item.name)}</strong></span>`;
+              const warnItems = (item.warnings || []).map(w => `<li class="${w.level==='error'?'detect-warn-error':''}">${esc(w.text)}</li>`).join('');
+              return `<div class="detect-card">
+                <div class="detect-card-header"><h3 class="detect-card-title">${title}</h3><span class="detect-card-meta">${item.years.previous}–${item.years.current}</span></div>
+                <div class="detect-card-meta">${selectHtml}<span>${item.accounts} cuentas</span>${item.totals ? `<span>${item.totals} totales</span>` : ''}</div>
+                ${item.warnings && item.warnings.length ? `<ul class="detect-card-warnings">${warnItems}</ul>` : ''}
+              </div>`;
+            };
+
+            const ignoredHtml = det.ignored && det.ignored.length ? `<details class="detect-ignored"><summary>Hojas auxiliares o ignoradas (${det.ignored.length})</summary><ul>${det.ignored.map(ig => `<li><strong>${esc(ig.name)}</strong>: ${esc(ig.reason)}</li>`).join('')}</ul></details>` : '';
+            const noteItems = (det.notes || []).map(n => `<li class="detect-warn-error">${esc(n.text)}</li>`).join('');
+            const notesHtml = det.notes && det.notes.length ? `<ul class="detect-card-warnings" style="margin:10px 0;">${noteItems}</ul>` : '';
+
+            // Verificar si Aplicar directo está habilitado
+            const W = window.FinoraWorkbook;
+            let canApplyDirect = false;
+            let pairMismatch = [];
+            if (b && i && W) {
+              pairMismatch = W.pairErrors(b.draft, i.draft);
+              const bValid = P.validate(b.draft).valid;
+              const iValid = P.validate(i.draft).valid;
+              canApplyDirect = !b.pending && !i.pending && bValid && iValid && pairMismatch.length === 0;
+            } else if ((b || i) && !W) {
+              const only = b || i;
+              canApplyDirect = !only.pending && P.validate(only.draft).valid;
+            }
+
+            selection.innerHTML = `
+              <div class="import-destination"><strong>${esc(file.name)}</strong><span>${list.length} ${list.length===1?'hoja':'hojas'}</span></div>
+              <p class="import-help">Finora detectó automáticamente las hojas y columnas financieras de este libro. Revisa el resumen y aplica o revisa las cuentas.</p>
+              ${notesHtml}
+              <div class="detect-cards">${kinds.map(cardHtml).join('')}</div>
+              ${ignoredHtml}
+              <div class="detect-actions">
+                <button type="button" class="detect-manual-link" id="detect-manual">Configuración manual avanzada</button>
+                <div class="detect-actions-buttons">
+                  <button type="button" class="button button-secondary" id="detect-review">Revisar cuentas</button>
+                  <button type="button" class="button button-primary" id="detect-apply"${canApplyDirect?'':' disabled'}>Aplicar</button>
+                </div>
+              </div>
+            `;
+
+            selection.querySelectorAll('.detect-choice').forEach(sel => {
+              sel.addEventListener('change', e => {
+                const k = e.target.dataset.kind;
+                chosen[k] = e.target.value;
+                renderDetection();
+              });
+            });
+
+            selection.querySelector('#detect-manual').addEventListener('click', () => {
+              showManualView(chosen.balance || chosen.income);
+            });
+
+            selection.querySelector('#detect-review').addEventListener('click', () => {
+              try {
+                if(!options.newCase && JSON.stringify(C.store.active())!==snapshot) throw new Error('Los datos actuales cambiaron. Cierra esta ventana y vuelve a importar el archivo.');
+                const entries = [];
+                if (b) entries.push({ kind: 'balance', name: b.name, text: b.text });
+                if (i) entries.push({ kind: 'income', name: i.name, text: i.text });
+                if (!entries.length) throw new Error('No hay estados válidos para revisar.');
+                if (entries.length === 2) {
+                  jointReview(entries);
+                } else {
+                  const entry = entries[0];
+                  const baseline = options.newCase ? C.blankCase(P.detectCompany(entry.text)||file.name.replace(/\.[^.]+$/,'')) : null;
+                  const filename = `${file.name} · ${entry.name}`;
+                  if(options.newCase) window.FinoraStart?.prepareImport();
+                  modal.addEventListener('close', () => window.FinoraImport.open({ kind: entry.kind, text: entry.text, ...(baseline?{baseline}:{}), fileName: filename }), { once: true });
+                  modal.close();
+                }
+              } catch(e) { error(e.message); }
+            });
+
+            selection.querySelector('#detect-apply').addEventListener('click', () => {
+              try {
+                if(!canApplyDirect) return;
+                if(!options.newCase && JSON.stringify(C.store.active())!==snapshot) throw new Error('Los datos actuales cambiaron. Cierra esta ventana y vuelve a importar el archivo.');
+                if (b && i && W) {
+                  const periods = b.draft.periods;
+                  const differs = ['previous','current'].some(side=>String(periods[side])!==String(original.periods[side]));
+                  const hasData = ['balance','income'].some(k=>original[k].some(row=>['previous','current'].some(side=>Number.isFinite(row.amounts?.[side]))));
+                  const fresh = options.newCase || (differs && hasData);
+                  const name = P.detectCompany(b.text) || P.detectCompany(i.text) || file.name.replace(/\.[^.]+$/,'');
+                  const destination = fresh ? C.blankCase(name) : structuredClone(original);
+                  if(!fresh && /ejemplo ficticio.*moneda/i.test(destination.name)) destination.name = name;
+                  destination.periods = { ...periods };
+                  if(fresh) {
+                    destination.currency = b.draft.units?.currency || i.draft.units?.currency || original.currency;
+                    destination.scale = b.draft.units?.scale || i.draft.units?.scale || '';
+                  }
+                  b.draft.applyUnits = !!b.draft.units;
+                  i.draft.applyUnits = !!i.draft.units;
+                  const nextCase = W.buildCase(destination, b.draft, i.draft);
+                  const saved = fresh ? C.store.add(nextCase) : C.store.save(nextCase);
+                  modal.close();
+                  window.Finora.toast('Balance y resultados importados automáticamente.' + (saved ? ' Guardado en este navegador.' : ' No se pudo conservar el guardado al cerrar el navegador.'));
+                } else if (b || i) {
+                  const only = b || i;
+                  const destination = options.newCase ? C.blankCase(P.detectCompany(only.text)||file.name.replace(/\.[^.]+$/,'')) : structuredClone(original);
+                  const nextCase = P.buildCase(destination, only.draft);
+                  const saved = options.newCase ? C.store.add(nextCase) : C.store.save(nextCase);
+                  modal.close();
+                  window.Finora.toast(`${only.kind === 'balance' ? 'Balance' : 'Resultados'} importado automáticamente.` + (saved ? ' Guardado en este navegador.' : ''));
+                }
+              } catch(e) { error(e.message); }
+            });
+          }
+          renderDetection();
+        } else {
+          showManualView();
+        }
       } catch (e) { if (!abort.signal.aborted && token===generation) { container.querySelector('.file-drop-title').textContent='Elegir archivo Excel o CSV'; error(e.message || 'No se pudo leer el archivo. Si está protegido con contraseña, guarda una copia sin protección.'); } }
     }
     container.addEventListener('change', event => {
@@ -166,11 +305,17 @@
         if(!options.newCase && JSON.stringify(C.store.active())!==snapshot) throw new Error('Los datos actuales cambiaron. Cierra esta ventana y vuelve a importar el archivo.');
         remember();
         if(container.querySelector('#file-both')?.checked) {
+          // Una hoja ajena (instrucciones, notas) puede parecer candidata por sus palabras: se usa la primera que se pueda leer.
           const entries=['balance','income'].map(kind=>{
-            const candidates=detected[kind], name=candidates.includes(selectedName)?selectedName:candidates[0];
-            const data=sheets.get(name), choice=mappings.get(name)||automatic(data);
-            if(choice.kind && choice.kind!==kind) throw new Error('La hoja '+name+' debe clasificarse como '+(kind==='balance'?'balance general':'estado de resultados')+'.');
-            try {return {kind,name,text:T.extract(data,choice).text};} catch(e) {throw new Error(name+': '+e.message+' Elige esta hoja para revisar sus columnas.');}
+            const label=kind==='balance'?'balance general':'estado de resultados', candidates=detected[kind];
+            const order=candidates.includes(selectedName)?[selectedName,...candidates.filter(name=>name!==selectedName)]:candidates;
+            let readError=null, kindError=null;
+            for(const name of order) {
+              const data=sheets.get(name), choice=mappings.get(name)||automatic(data);
+              if(choice.kind && choice.kind!==kind) { kindError??=new Error('La hoja '+name+' debe clasificarse como '+label+'.'); continue; }
+              try {return {kind,name,text:T.extract(data,choice).text};} catch(e) { readError??=new Error(name+': '+e.message+' Elige esta hoja para revisar sus columnas.'); }
+            }
+            throw readError||kindError||new Error('No se encontró una hoja de '+label+' en el archivo.');
           });
           jointReview(entries);return;
         }

@@ -50,7 +50,7 @@
     for (let r = 0; r < Math.min(rows.length, 40); r++) {
       const candidate = rows[r].map((v, c) => ({ c, year: yearOf(v) })).filter(x => x.year !== null);
       const labels = rows[r].filter((v, c) => filled(v) && !candidate.some(x => x.c === c)).map(clean);
-      if (candidate.length >= 2 && new Set(candidate.map(x => x.year)).size >= 2 && (labels.length === 0 || labels.some(v => /^(cuenta|concepto|rubro|descripci[oó]n|detalle|partida)s?$/i.test(v)))) { header = r; columns = candidate; break; }
+      if (candidate.length >= 2 && new Set(candidate.map(x => x.year)).size >= 2 && (labels.length === 0 || labels.some(v => v.length <= 40 && /(^|\s)(cuentas?|conceptos?|rubros?|descripci[oó]n|detalles?|partidas?|nombre)(\s|$)/i.test(v)))) { header = r; columns = candidate; break; }
     }
     const available = Array.from({ length: Math.max(0, ...rows.map(row => row.length)) }, (_, c) => c).filter(c => rows.some(row => filled(row[c])));
     const account = available.find(c => !columns.some(x => x.c === c) && rows.slice(Math.max(header + 1, 0)).some(row => typeof row[c] === 'string' && /[a-záéíóúñ]/i.test(row[c]))) ?? available[0] ?? 0;

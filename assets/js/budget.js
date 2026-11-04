@@ -22,6 +22,25 @@
   const signature = c => JSON.stringify([context(c), c.balance]);
   const sum = values => values.length && values.every(finite) ? values.reduce((a, b) => a + b, 0) : null;
   const calc = (fn, ...values) => values.every(finite) ? fn(...values) : null;
+  const POLICY_KEYS = ['current', 'next', 'after'];
+  // Reparto del crédito en el período actual, el siguiente y dos períodos después.
+  // Proyecciones anteriores sin política: el % del mismo período y el resto en el siguiente (mismo resultado que antes).
+  function policyOf(adv, kind) {
+    const stored = adv?.[`${kind}Policy`];
+    if (stored && POLICY_KEYS.some(k => stored[k] !== null && stored[k] !== undefined && stored[k] !== '')) return { current: stored.current ?? null, next: stored.next ?? null, after: stored.after ?? null, legacy: false };
+    const raw = adv?.[`${kind}Percent`], pct = typeof raw === 'number' ? raw : raw === null || raw === undefined || raw === '' ? null : Number(raw);
+    const valid = finite(pct) && pct >= 0 && pct <= 100;
+    return { current: raw ?? null, next: valid ? 100 - pct : null, after: valid ? 0 : null, legacy: true };
+  }
+  // Las proyecciones anteriores muestran su política convertida al abrirse (mismos importes).
+  function withPolicies(adv) {
+    if (!adv) return adv;
+    for (const kind of ['collection', 'payment']) {
+      const policy = policyOf(adv, kind);
+      if (policy.legacy && finite(policy.next)) adv[`${kind}Policy`] = { current: Number(policy.current), next: policy.next, after: 0 };
+    }
+    return adv;
+  }
   const nextMonth = month => {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')) return '';
     const [y, m] = month.split('-').map(Number);
@@ -68,11 +87,12 @@
       expenses: [], expensesNone: false, historyMonths: 12,
       result: { interestMode: 'none', interest: {}, debt: { principal: null, annualRate: null, termMonths: null, amortization: 'equalPrincipal' },
         taxMode: 'pending', taxRate: null, taxes: {}, taxAdjustments: {}, otherEnabled: false, otherIncome: {}, otherExpenses: {} },
-      advanced: { enabled: false, openingSource: 'automatic', opening: {}, collectionPercent: null, paymentPercent: null, confirmed: false, baseSignature: '', useDebtSchedule: false, values: {} } };
+      advanced: { enabled: false, openingSource: 'automatic', opening: {}, collectionPercent: null, paymentPercent: null, confirmed: false, baseSignature: '', useDebtSchedule: false, values: {} },
+      mode: 'integrated', cash: { openingCash: null, sales: {}, purchases: {}, opex: {}, taxes: {}, interest: {}, otherIncome: {}, otherDisbursements: {}, principal: {} } };
   }
   function upgrade(c, original) {
     if (!original) return newProjection(c);
-    if (original.version === 2) return structuredClone(original);
+    if (original.version === 2) { const copy = structuredClone(original); withPolicies(copy.advanced); return copy; }
     const s = newProjection(c), p = s.products[0], source = original.openingSource === 'manual' ? original.opening || {} : automaticOpening(c).amounts;
     s.id = original.id || 'legacy-budget'; s.name = original.name || 'Presupuesto anterior'; s.context = original.context;
     const rows = original.months || [];
@@ -92,6 +112,7 @@
       s.result.otherIncome[row.month] = row.otherIncome; s.result.otherExpenses[row.month] = 0;
       s.advanced.values[row.month] = { capex: row.capex, financing: row.financing, dividends: row.dividends };
     });
+    withPolicies(s.advanced);
     return s;
   }
   function analyzeProducts(c, raw) {
@@ -263,10 +284,16 @@
     }
     const automatic = automaticOpening(c), source = adv.openingSource === 'manual' ? adv.opening || {} : automatic.amounts;
     const opening = Object.fromEntries(Object.keys(openingFields).map(k => [k, null]));
-    let openingDifference = null;
+    let openingDifference = null, priorCheck = null;
+    // Caja independiente: no exige balance ni etapas de resultado; reutiliza ventas y compras si su presupuesto está completo.
+    const standalone = s.mode === 'cash', cashInput = s.cash || {};
+    const cashSource = standalone ? state.sales.ready && state.purchases.ready ? 'budget' : 'manual' : null;
+    const optional = (raw, label, options) => raw === null || raw === undefined || raw === '' ? 0 : value('cash', raw, label, options);
     const cashMinimum = { ready: false, issues: [] };
     let closing = { ...opening, currentAssets: null, nonCurrentAssets: null, assets: null, liabilities: null, funding: null, difference: null };
-    if (adv.enabled) {
+    if (adv.enabled || standalone) {
+      if (standalone) opening.cash = value('cash', cashInput.openingCash, 'Saldo inicial de efectivo', { signed: true });
+      else {
       for (const [k,label] of Object.entries(openingFields)) opening[k] = value('balance', source[k], `${label} inicial`, { signed: k === 'equity' });
       for (const key of ['cash','receivables','payables']) if (!finite(opening[key])) issue('cash', `Completa ${openingFields[key].toLowerCase()} inicial.`);
       if (adv.openingSource !== 'manual' && (!automatic.balanced || automatic.incomplete)) issue('balance', 'Completa y concilia el balance actual o informa los saldos iniciales manualmente.');
@@ -276,27 +303,82 @@
       const funding = sum(['payables','otherCurrentLiabilities','longDebt','otherNonCurrentLiabilities','equity'].map(k => opening[k]));
       openingDifference = calc((a,b) => a-b, assets, funding);
       if (finite(openingDifference) && Math.abs(openingDifference) > Math.max(.01,Math.abs(assets)*1e-12)) issue('balance', 'Los saldos iniciales no cuadran: activos distintos de pasivos más patrimonio.');
-      const collection = value('cash', adv.collectionPercent, 'Porcentaje de cobro en el mismo período', { max: 100 });
-      const payment = value('cash', adv.paymentPercent, 'Porcentaje de pago en el mismo período', { max: 100 });
-      if (!adv.confirmed || adv.baseSignature !== signature(c)) { issue('cash', 'Revisa y confirma las fechas, los saldos y los supuestos de caja.'); issue('balance', 'Revisa y confirma los supuestos del balance proforma.'); }
-      let cash = opening.cash, receivables = opening.receivables, payables = opening.payables, previousSales = 0, previousPurchases = 0;
+      }
+      const policy = (kind, word, noun) => {
+        const raw = policyOf(adv, kind), empty = { current: null, next: null, after: null };
+        const labels = { current: `${word} en el mismo período · %`, next: `${word} en el período siguiente · %`, after: `${word} dos períodos después · %` };
+        const out = raw.legacy ? { current: value('cash', raw.current, labels.current, { max: 100 }), next: raw.next, after: raw.after }
+          : Object.fromEntries(POLICY_KEYS.map(k => [k, value('cash', raw[k], labels[k], { max: 100 })]));
+        const total = sum(POLICY_KEYS.map(k => out[k]));
+        if (!finite(total)) return empty;
+        if (Math.abs(total - 100) > 1e-6) { issue('cash', `La política de ${noun} debe sumar 100 % (suma actual: ${+total.toFixed(4)} %).`); return empty; }
+        return out;
+      };
+      const collection = policy('collection', 'Cobro', 'cobros'), payment = policy('payment', 'Pago', 'pagos');
+      // Ventas y compras de los dos períodos anteriores al inicio. Sin ellas, se conserva el criterio anterior:
+      // el saldo inicial de CxC/CxP se cobra/paga completo en el primer período.
+      const prior = (kind, noun) => {
+        const raw = adv.prior?.[kind] || {};
+        if (!['before1', 'before2'].some(k => raw[k] !== null && raw[k] !== undefined && raw[k] !== '')) return null;
+        return { before1: value('cash', raw.before1, `${noun} del período anterior al inicio`), before2: value('cash', raw.before2, `${noun} de dos períodos antes del inicio`) };
+      };
+      const priorSales = prior('sales', 'Ventas'), priorPurchases = prior('purchases', 'Compras');
+      // Lo pendiente al inicio según las operaciones anteriores y la política; se compara con el balance sin modificarlo.
+      const pendingFrom = (ops, pol) => ops ? calc((b1, b2, next, after) => b1 * (next + after) / 100 + b2 * after / 100, ops.before1, ops.before2, pol.next, pol.after) : null;
+      const reconcile = (ops, pol, balance, label) => {
+        if (!ops) return null;
+        const expected = pendingFrom(ops, pol), difference = calc((a, b) => a - b, balance, expected);
+        if (finite(difference) && Math.abs(difference) > .01) state.cash.warnings.push(`${label} iniciales del balance (${C.fmt.money(balance, c)}) difieren de lo pendiente según las operaciones anteriores y la política (${C.fmt.money(expected, c)}): diferencia ${C.fmt.money(difference, c)}. Revisa el balance o las operaciones anteriores; no se ajusta automáticamente.`);
+        return { balance, expected, difference };
+      };
+      // Sin balance, las cuentas iniciales son lo pendiente de las operaciones anteriores (o cero si no se informan).
+      if (standalone) { opening.receivables = priorSales ? pendingFrom(priorSales, collection) : 0; opening.payables = priorPurchases ? pendingFrom(priorPurchases, payment) : 0; }
+      else priorCheck = { receivables: reconcile(priorSales, collection, opening.receivables, 'Las cuentas por cobrar'), payables: reconcile(priorPurchases, payment, opening.payables, 'Las cuentas por pagar') };
+      if (!standalone && (!adv.confirmed || adv.baseSignature !== signature(c))) { issue('cash', 'Revisa y confirma las fechas, los saldos y los supuestos de caja.'); issue('balance', 'Revisa y confirma los supuestos del balance proforma.'); }
+      // [período anterior, dos períodos antes]; lo que vence después del horizonte queda en cuentas por cobrar/pagar.
+      let cash = opening.cash, receivables = opening.receivables, payables = opening.payables, salesBefore = [0, 0], purchasesBefore = [0, 0];
+      let priorSalesBefore = priorSales ? [priorSales.before1, priorSales.before2] : [0, 0], priorPurchasesBefore = priorPurchases ? [priorPurchases.before1, priorPurchases.before2] : [0, 0];
       let fixed = opening.fixed, longDebt = opening.longDebt, equity = opening.equity;
-      if (adv.useDebtSchedule && result.interestMode !== 'debt') issue('cash', 'Para incorporar amortizaciones selecciona primero intereses calculados desde una deuda.');
-      if (adv.useDebtSchedule && finite(principal) && finite(longDebt) && principal > longDebt) issue('balance', 'La deuda del cálculo de intereses supera la deuda de largo plazo inicial.');
+      if (!standalone && adv.useDebtSchedule && result.interestMode !== 'debt') issue('cash', 'Para incorporar amortizaciones selecciona primero intereses calculados desde una deuda.');
+      if (!standalone && adv.useDebtSchedule && finite(principal) && finite(longDebt) && principal > longDebt) issue('balance', 'La deuda del cálculo de intereses supera la deuda de largo plazo inicial.');
       for (const [index, row] of r.rows.entries()) {
         const movements = adv.values?.[row.month] || {};
+        row.principalPaid = 0;
+        if (standalone) {
+          // Importes efectivamente pagados/cobrados; los extraordinarios vacíos valen 0. El principal es un desembolso, no financiamiento.
+          const label = r.periods[index].label, entry = key => cashInput[key]?.[row.month];
+          if (cashSource === 'manual') { row.sales = value('cash', entry('sales'), `Ventas presupuestadas · ${label}`); row.purchases = value('cash', entry('purchases'), `Compras presupuestadas · ${label}`); }
+          row.opex = value('cash', entry('opex'), `Gastos operativos pagados · ${label}`);
+          row.taxes = value('cash', entry('taxes'), `Impuestos pagados · ${label}`);
+          row.interest = value('cash', entry('interest'), `Intereses pagados · ${label}`);
+          row.otherIncome = optional(entry('otherIncome'), `Otros ingresos de efectivo · ${label}`);
+          row.otherExpenses = optional(entry('otherDisbursements'), `Otros desembolsos · ${label}`);
+          row.principalPaid = optional(entry('principal'), `Pago de principal · ${label}`);
+          row.capex = 0; row.dividends = 0;
+          row.financing = optional(movements.financing, `Préstamos recibidos · ${label}`, { signed: true });
+        } else {
         for (const key of ['capex','financing','dividends']) row[key] = value('cash', Object.hasOwn(movements,key) ? movements[key] : 0, `${fields[key]} · ${row.month}`, { signed: key === 'financing' });
         if (adv.useDebtSchedule) row.financing = calc((net,paid) => net-paid, row.financing, row.principalPayment);
-        row.currentCollections = calc((sales,pct) => sales*pct/100,row.sales,collection);
-        row.creditCollections = previousSales;
-        row.initialReceivablesCollected = index === 0 ? opening.receivables : 0;
+        }
+        const share = (amount, pct) => calc((a, p) => a * p / 100, amount, pct);
+        row.currentCollections = share(row.sales, collection.current);
+        row.creditCollectionsPrevious = share(salesBefore[0], collection.next);
+        row.creditCollectionsEarlier = share(salesBefore[1], collection.after);
+        row.priorCollections = sum([share(priorSalesBefore[0], collection.next), share(priorSalesBefore[1], collection.after)]);
+        row.creditCollections = sum([row.creditCollectionsPrevious,row.creditCollectionsEarlier,row.priorCollections]);
+        // Con operaciones anteriores, su cobro ya representa las CxC iniciales: no se cobran dos veces.
+        row.initialReceivablesCollected = index === 0 && !priorSales ? opening.receivables : 0;
         row.collections = sum([row.currentCollections,row.creditCollections,row.initialReceivablesCollected]);
-        row.currentPayments = calc((buys,pct) => buys*pct/100,row.purchases,payment);
-        row.creditPayments = previousPurchases;
-        row.initialPayablesPaid = index === 0 ? opening.payables : 0;
+        row.currentPayments = share(row.purchases, payment.current);
+        row.creditPaymentsPrevious = share(purchasesBefore[0], payment.next);
+        row.creditPaymentsEarlier = share(purchasesBefore[1], payment.after);
+        row.priorPayments = sum([share(priorPurchasesBefore[0], payment.next), share(priorPurchasesBefore[1], payment.after)]);
+        row.creditPayments = sum([row.creditPaymentsPrevious,row.creditPaymentsEarlier,row.priorPayments]);
+        row.initialPayablesPaid = index === 0 && !priorPurchases ? opening.payables : 0;
         row.payments = sum([row.currentPayments,row.creditPayments,row.initialPayablesPaid]);
-        previousSales = calc((sales,pct) => sales*(1-pct/100),row.sales,collection);
-        previousPurchases = calc((buys,pct) => buys*(1-pct/100),row.purchases,payment);
+        salesBefore = [row.sales, salesBefore[0]];
+        purchasesBefore = [row.purchases, purchasesBefore[0]];
+        priorSalesBefore = [0, priorSalesBefore[0]]; priorPurchasesBefore = [0, priorPurchasesBefore[0]];
         receivables = row.receivables = calc((start,sold,paid)=>start+sold-paid,receivables,row.sales,row.collections);
         payables = row.payables = calc((start,bought,paid)=>start+bought-paid,payables,row.purchases,row.payments);
         row.openingCash = cash;
@@ -304,7 +386,7 @@
         row.cashAvailable = sum([row.openingCash,row.cashInflows]);
         row.taxesAndInterest = sum([row.taxes,row.interest]);
         row.otherDisbursements = sum([row.capex,row.otherExpenses,row.dividends]);
-        row.cashOutflows = sum([row.payments,row.opex,row.taxesAndInterest,row.otherDisbursements]);
+        row.cashOutflows = sum([row.payments,row.opex,row.taxesAndInterest,row.otherDisbursements,row.principalPaid]);
         row.cashBeforeFinancing = calc((available,outflows)=>available-outflows,row.cashAvailable,row.cashOutflows);
         row.cashMovement = calc((inflows,outflows,net)=>inflows-outflows+net,row.cashInflows,row.cashOutflows,row.financing);
         cash = row.cash = sum([row.cashBeforeFinancing,row.financing]);
@@ -329,23 +411,27 @@
         if (finite(fixed) && fixed < -.01) issue('balance', `${row.month}: la depreciación supera los activos fijos disponibles.`);
         if (finite(longDebt) && longDebt < -.01) issue('balance', `${row.month}: la amortización supera la deuda de largo plazo.`);
       }
+      if (standalone) closing = { ...closing, cash, receivables, payables };
+      else {
       closing = { ...opening, cash, receivables, payables, fixed, longDebt, equity, inventory: r.rows.at(-1)?.inventory ?? null };
       closing.currentAssets = sum([cash,receivables,closing.inventory,opening.otherCurrentAssets]);
       closing.nonCurrentAssets = sum([fixed,opening.otherNonCurrentAssets]); closing.assets = sum([closing.currentAssets,closing.nonCurrentAssets]);
       closing.liabilities = sum([payables,opening.otherCurrentLiabilities,longDebt,opening.otherNonCurrentLiabilities]); closing.funding = sum([closing.liabilities,equity]);
       closing.difference = calc((a,b)=>a-b,closing.assets,closing.funding);
       if (finite(closing.difference) && Math.abs(closing.difference)>Math.max(.01,Math.abs(closing.assets)*1e-12)) issue('balance','El balance proyectado presenta una diferencia por revisar.');
+      }
     }
-    const dependencies = { configuration: [], sales: ['configuration'], purchases: ['sales'], costs: ['purchases'], expenses: ['configuration'], income: ['costs','expenses'], cash: ['income'], balance: ['cash'] };
-    for (const key of stages) state[key].ready = (!['cash','balance'].includes(key) || !!adv.enabled) && !state[key].issues.length && dependencies[key].every(dep=>state[dep].ready);
-    cashMinimum.ready = !!adv.enabled && r.rows.length > 0 && !cashMinimum.issues.length && r.rows.every(row=>finite(row.cashSurplus) && finite(row.remainingShortfall));
-    const totals = Object.fromEntries(['sales','purchases','costSales','administration','selling','opex','depreciation','operatingExpenses','otherIncome','otherExpenses','interest','taxes','grossProfit','ebit','ebt','netProfit','collections','payments','capex','financing','dividends','cashMovement',
-      'currentCollections','creditCollections','initialReceivablesCollected','currentPayments','creditPayments','initialPayablesPaid','cashInflows','taxesAndInterest','otherDisbursements','cashOutflows'].map(key=>[key,sum(r.rows.map(row=>row[key]))]));
-    const activeStages = adv.enabled ? stages : stages.filter(k=>!['cash','balance'].includes(k));
+    const dependencies = { configuration: [], sales: ['configuration'], purchases: ['sales'], costs: ['purchases'], expenses: ['configuration'], income: ['costs','expenses'], cash: standalone ? ['configuration'] : ['income'], balance: ['cash'] };
+    const enabledStage = key => key === 'cash' ? !!adv.enabled || standalone : key === 'balance' ? !!adv.enabled && !standalone : true;
+    for (const key of stages) state[key].ready = enabledStage(key) && !state[key].issues.length && dependencies[key].every(dep=>state[dep].ready);
+    cashMinimum.ready = (!!adv.enabled || standalone) && r.rows.length > 0 && !cashMinimum.issues.length && r.rows.every(row=>finite(row.cashSurplus) && finite(row.remainingShortfall));
+    const totals = Object.fromEntries(['sales','purchases','costSales','administration','selling','opex','depreciation','operatingExpenses','otherIncome','otherExpenses','interest','taxes','grossProfit','ebit','ebt','netProfit','collections','payments','capex','financing','dividends','cashMovement','principalPaid',
+      'currentCollections','creditCollections','creditCollectionsPrevious','creditCollectionsEarlier','priorCollections','initialReceivablesCollected','currentPayments','creditPayments','creditPaymentsPrevious','creditPaymentsEarlier','priorPayments','initialPayablesPaid','cashInflows','taxesAndInterest','otherDisbursements','cashOutflows'].map(key=>[key,sum(r.rows.map(row=>row[key]))]));
+    const activeStages = standalone ? ['configuration','cash'] : adv.enabled ? stages : stages.filter(k=>!['cash','balance'].includes(k));
     const issues = [...new Set(activeStages.flatMap(k=>state[k].issues))], warnings = [...new Set(activeStages.flatMap(k=>state[k].warnings))];
-    const ready = adv.enabled ? state.balance.ready : state.income.ready;
+    const ready = standalone ? state.cash.ready : adv.enabled ? state.balance.ready : state.income.ready;
     delete r.issue; delete r.value;
-    return { ...r, expenseRows, stale, automatic, opening, openingDifference, closing, totals, cashMinimum, issues, warnings, ready, status: ready ? warnings.length ? 'review' : 'ready' : 'incomplete' };
+    return { ...r, mode: standalone ? 'cash' : 'integrated', cashSource, expenseRows, stale, automatic, opening, openingDifference, priorCheck, closing, totals, cashMinimum, issues, warnings, ready, status: ready ? warnings.length ? 'review' : 'ready' : 'incomplete' };
   }
   function saveProjection(c, projection) {
     if (projection.context !== context(c)) throw new Error('La proyección corresponde a otro contexto. Crea una copia revisada antes de guardarla.');
@@ -357,7 +443,7 @@
     if (index < 0) next.params.budgetProjections.push(structuredClone(projection)); else next.params.budgetProjections[index] = structuredClone(projection);
     next.params.budget = structuredClone(projection); return next;
   }
-  const api = { fields, openingFields, context, signature, blank, blankMonth, nextMonth, settingsFor, automaticOpening, analyze,
+  const api = { fields, openingFields, context, signature, blank, blankMonth, nextMonth, settingsFor, automaticOpening, analyze, policyOf,
     periodList, newProduct, newProjection, upgrade, analyzeProducts, historicalExpenses, saveProjection };
   if (node) module.exports = api; else root.FinoraBudget = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
