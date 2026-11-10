@@ -12,7 +12,9 @@
   <link rel="stylesheet" href="../../assets/css/presentation.css">
   <script defer src="../../assets/js/finance.js"></script>
   <script defer src="../../assets/js/casos.js"></script>
-  <script defer src="../../assets/js/budget.js"></script>
+  <script defer src="../../assets/js/proforma.js"></script>
+  <script defer src="../../assets/js/break-even.js"></script>
+  <script defer src="../../assets/js/leverage.js"></script>
   <script defer src="../../assets/js/app.js"></script>
   <script defer src="../../assets/js/case-bar.js"></script>
   <script defer src="./script.js"></script>
@@ -38,6 +40,8 @@
 
       <section class="panel case-bar" id="case-bar" aria-label="Empresa"></section>
 
+      <section class="panel proforma-assumptions" id="proforma-assumptions" aria-label="Premisas de cálculo"></section>
+
       <div class="proforma-layout">
         <aside class="report-controls" aria-label="Opciones del informe">
           <section class="panel">
@@ -48,10 +52,13 @@
               </div>
             </div>
             <div class="panel-body">
-              <p class="field-label">Período del presupuesto</p>
-              <p id="budget-period-summary">Pendiente</p>
-              <p class="scenario-description">Importa o ingresa las previsiones y sus políticas en el presupuesto de la empresa.</p>
-              <a class="button button-primary" href="../planeacion-presupuestos/index.html">Editar presupuesto</a>
+              <div id="projection-controls"></div>
+              <p id="projection-save-status" role="status"></p>
+              <div class="proforma-actions">
+                <button class="button button-primary" id="save-projection" type="button">Guardar proyección</button>
+                <button class="button button-secondary" id="new-projection" type="button">Nueva</button>
+              </div>
+              <p class="scenario-description">Las proyecciones anteriores basadas en presupuestos se conservan en <a href="../planeacion-presupuestos/index.html">Planeación y Presupuestos</a>.</p>
 
               <span class="field-label report-type-label" id="report-type-label" style="margin-top: 16px;">Tipo de informe</span>
               <div class="report-types" role="tablist" aria-labelledby="report-type-label">
@@ -72,10 +79,10 @@
                 <span>Estado de los datos</span>
                 <span class="badge badge-blue" id="proforma-data-source">Pendiente</span>
               </div>
-              <p class="scenario-description" id="proforma-data-desc">Pendiente de cargar el presupuesto de la empresa.</p>
+              <p class="scenario-description" id="proforma-data-desc">Selecciona el histórico de la empresa.</p>
 
               <div class="assumption-row">
-                <span>Períodos presupuestados</span>
+                <span>Duración proyectada</span>
                 <strong id="summary-months">—</strong>
               </div>
               <div class="assumption-row">
@@ -139,6 +146,44 @@
                 <strong id="proforma-net-margin">—</strong>
                 <span class="paper-highlight-description" id="proforma-margin-desc">Rentabilidad neta sobre ventas proyectadas.</span>
               </div>
+              <details class="proforma-comparison" open>
+                <summary>Comparar metodologías y revisar cálculos</summary>
+                <div class="proforma-table-scroll"><table class="statement-table">
+                  <caption>Ambas metodologías usan las mismas ventas y políticas de impuestos y dividendos.</caption>
+                  <thead><tr><th scope="col">Concepto</th><th scope="col">% de ventas</th><th scope="col">Fijos y variables</th></tr></thead>
+                  <tbody id="proforma-comparison-body"></tbody>
+                </table></div>
+                <div id="proforma-calculations"></div>
+              </details>
+              <div class="proforma-leverage-box" id="proforma-leverage-box">
+                <div class="proforma-leverage-header">
+                  <div>
+                    <span class="proforma-leverage-tag">SENSIBILIDAD Y RIESGO OPERATIVO</span>
+                    <h3 class="proforma-leverage-title">Apalancamiento de la proyección</h3>
+                  </div>
+                  <a class="button button-ghost button-small" href="../apalancamiento/index.html?source=proforma" id="proforma-leverage-link">
+                    Analizar en Apalancamiento <i data-icon="arrow-right"></i>
+                  </a>
+                </div>
+                <p id="proforma-leverage-note" class="scenario-assumption"></p>
+                <div class="proforma-leverage-metrics">
+                  <div class="proforma-leverage-metric">
+                    <span class="metric-label">GAO (Operativo)</span>
+                    <strong id="proforma-gao-val">—</strong>
+                    <small id="proforma-gao-desc">Sensibilidad UAII frente a ventas</small>
+                  </div>
+                  <div class="proforma-leverage-metric">
+                    <span class="metric-label">GAF (Financiero)</span>
+                    <strong id="proforma-gaf-val">—</strong>
+                    <small id="proforma-gaf-desc">Sensibilidad UAI frente a UAII</small>
+                  </div>
+                  <div class="proforma-leverage-metric">
+                    <span class="metric-label">GAT (Total)</span>
+                    <strong id="proforma-gat-val">—</strong>
+                    <small id="proforma-gat-desc">Impacto total de ventas en UAI</small>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div id="report-balance" role="tabpanel" aria-labelledby="tab-balance" hidden>
@@ -155,16 +200,17 @@
                 <i data-icon="check"></i>
                 <span id="balance-equation-msg">Pendiente de comprobar los datos.</span>
               </div>
+              <div id="balance-calculations"></div>
             </div>
 
             <div class="paper-notes">
               <div id="proforma-pending" role="status"></div>
               <strong>Bases y notas de la proyección</strong>
-              <p id="paper-notes-text">La proyección se calcula a partir del presupuesto guardado.</p>
+              <p id="paper-notes-text">La proyección se calcula a partir de los estados históricos seleccionados.</p>
             </div>
             <div class="paper-footer">
               <span>Finora · Planeación y Proyecciones</span>
-              <span>Informe presupuestario</span>
+              <span>Informe proforma independiente</span>
             </div>
           </div>
         </section>
@@ -172,7 +218,7 @@
     </main>
     <footer class="page-footer">
       <span>Finora · Sistema de Análisis y Planeación Financiera</span>
-      <span>Proforma conectada · Modelado de escenarios</span>
+      <span>Proforma histórica · Modelado de escenarios</span>
     </footer>
   </div>
   <div class="toast" id="toast" role="status"></div>

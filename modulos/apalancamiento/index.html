@@ -13,6 +13,10 @@
   <link rel="stylesheet" href="../../assets/css/presentation.css">
   <script defer src="../../assets/js/finance.js"></script>
   <script defer src="../../assets/js/casos.js"></script>
+  <script defer src="../../assets/js/budget.js"></script>
+  <script defer src="../../assets/js/proforma.js"></script>
+  <script defer src="../../assets/js/break-even.js"></script>
+  <script defer src="../../assets/js/leverage.js"></script>
   <script defer src="../../assets/js/app.js"></script>
   <script defer src="../../assets/js/case-bar.js"></script>
   <script defer src="./script.js"></script>
@@ -38,12 +42,24 @@
 
       <section class="panel case-bar" id="case-bar" aria-label="Empresa"></section>
 
-      <div class="example-context" id="leverage-context">
-        <span class="badge badge-blue" id="leverage-mode-badge">Empresa conectada</span>
-        <span id="leverage-period-label">Período actual</span>
-        <span class="currency-caption" id="leverage-currency-caption">Moneda: C$</span>
+      <div class="leverage-source-bar">
+        <div class="segmented-control" role="group" aria-label="Origen de los datos para apalancamiento">
+          <button class="source-button active" type="button" data-source="historical" id="source-historical" aria-pressed="true">
+            <i data-icon="file"></i> Estado actual (Histórico)
+          </button>
+          <button class="source-button" type="button" data-source="proforma" id="source-proforma" aria-pressed="false">
+            <i data-icon="chart"></i> Proyección Proforma
+          </button>
+        </div>
+        <div class="example-context" id="leverage-context">
+          <span class="badge badge-blue" id="leverage-mode-badge">Empresa conectada</span>
+          <span id="leverage-period-label">Período actual</span>
+          <span class="currency-caption" id="leverage-currency-caption">Cifras en C$</span>
+        </div>
       </div>
 
+      <p id="leverage-projection-name" class="scenario-assumption"></p>
+      <p class="leverage-links"><a href="../proforma/index.html">Ver Estados Proforma</a> · <a href="../planeacion-presupuestos/index.html">Editar presupuesto</a> · <a href="../punto-equilibrio/index.html">Revisar clasificación de costos</a></p>
       <div id="leverage-empty-notice" class="note" style="display:none; margin-bottom: 22px;"></div>
 
       <section class="leverage-cards" aria-label="Grados de apalancamiento del escenario base">
@@ -53,11 +69,11 @@
             <span class="mini-icon"><i data-icon="box"></i></span>
           </div>
           <h2>Apalancamiento operativo</h2>
-          <div class="leverage-value" id="gao-val">2.40<span> veces</span></div>
-          <p id="gao-desc">Por cada 1% de cambio en ventas, la utilidad operativa cambia 2.4%.</p>
+          <div class="leverage-value" id="gao-val">—<span> veces</span></div>
+          <p id="gao-desc">Sensibilidad de la utilidad operativa ante cambios en las ventas.</p>
           <div class="leverage-formula">
             <span>Contribución / utilidad operativa</span>
-            <strong id="gao-formula">C$120,000 / C$50,000</strong>
+            <strong id="gao-formula">—</strong>
           </div>
           <button class="button button-ghost button-small" data-leverage-detail="gao" type="button">Ver cálculo<i data-icon="arrow-right"></i></button>
         </article>
@@ -68,11 +84,11 @@
             <span class="mini-icon purple-icon"><i data-icon="bank"></i></span>
           </div>
           <h2>Apalancamiento financiero</h2>
-          <div class="leverage-value" id="gaf-val">1.25<span> veces</span></div>
-          <p id="gaf-desc">Por cada 1% de cambio en la utilidad operativa, la utilidad antes de impuestos cambia 1.25%.</p>
+          <div class="leverage-value" id="gaf-val">—<span> veces</span></div>
+          <p id="gaf-desc">Sensibilidad de la utilidad antes de impuestos ante cambios operativos.</p>
           <div class="leverage-formula">
             <span>Utilidad operativa / utilidad antes de impuestos</span>
-            <strong id="gaf-formula">C$50,000 / C$40,000</strong>
+            <strong id="gaf-formula">—</strong>
           </div>
           <button class="button button-ghost button-small" data-leverage-detail="gaf" type="button">Ver cálculo<i data-icon="arrow-right"></i></button>
         </article>
@@ -83,11 +99,11 @@
             <span class="mini-icon"><i data-icon="layers"></i></span>
           </div>
           <h2>Apalancamiento total</h2>
-          <div class="leverage-value" id="gat-val">3.00<span> veces</span></div>
-          <p id="gat-desc">Por cada 1% de cambio en ventas, la utilidad antes de impuestos cambia 3%.</p>
+          <div class="leverage-value" id="gat-val">—<span> veces</span></div>
+          <p id="gat-desc">Impacto total de cambios en ventas sobre la utilidad antes de impuestos.</p>
           <div class="leverage-formula">
             <span>Apalancamiento operativo × financiero</span>
-            <strong id="gat-formula">2.40 × 1.25</strong>
+            <strong id="gat-formula">—</strong>
           </div>
           <button class="button button-ghost button-small" data-leverage-detail="gat" type="button">Ver cálculo<i data-icon="arrow-right"></i></button>
         </article>
@@ -144,6 +160,7 @@
               <span class="mini-icon"><i data-icon="trend"></i></span>
               <p id="scenario-description">Cargando escenario...</p>
             </div>
+            <p id="leverage-assumption" class="scenario-assumption"></p>
             <p class="scenario-assumption">Las barras muestran la magnitud de la variación calculada sobre la estructura de costos informada.</p>
           </div>
         </article>
@@ -157,13 +174,14 @@
           </div>
           <div class="panel-body">
             <dl class="leverage-breakdown" id="leverage-breakdown">
-              <div><dt>Ingresos por ventas</dt><dd id="bd-sales">C$ 300,000.00</dd></div>
-              <div><dt>Costos variables <span id="bd-vc-rate">60% de ventas</span></dt><dd id="bd-vc">− C$ 180,000.00</dd></div>
-              <div class="breakdown-subtotal"><dt>Margen de contribución</dt><dd id="bd-cm">C$ 120,000.00</dd></div>
-              <div><dt>Costos fijos operativos</dt><dd id="bd-fc">− C$ 70,000.00</dd></div>
-              <div class="breakdown-subtotal"><dt>Utilidad operativa <span>UAII</span></dt><dd id="bd-ebit">C$ 50,000.00</dd></div>
-              <div><dt>Gastos financieros / Intereses</dt><dd id="bd-interest">− C$ 10,000.00</dd></div>
-              <div class="breakdown-total"><dt>Utilidad antes de impuestos</dt><dd id="bd-ebt">C$ 40,000.00</dd></div>
+              <div><dt>Ingresos por ventas</dt><dd id="bd-sales">—</dd></div>
+              <div><dt>Costos variables <span id="bd-vc-rate">—</span></dt><dd id="bd-vc">—</dd></div>
+              <div class="breakdown-subtotal"><dt>Margen de contribución</dt><dd id="bd-cm">—</dd></div>
+              <div><dt>Costos fijos operativos</dt><dd id="bd-fc">—</dd></div>
+              <div class="breakdown-subtotal"><dt>Utilidad operativa <span>UAII</span></dt><dd id="bd-ebit">—</dd></div>
+              <div><dt>Gastos financieros / Intereses</dt><dd id="bd-interest">—</dd></div>
+              <div><dt>Otros ingresos / gastos netos</dt><dd id="bd-other">—</dd></div>
+              <div class="breakdown-total"><dt>Utilidad antes de impuestos</dt><dd id="bd-ebt">—</dd></div>
             </dl>
           </div>
         </aside>

@@ -36,11 +36,11 @@ function file(){
     assert.deepEqual((await model()).balance,before.balance);assert.deepEqual((await model()).income,before.income);
     console.log('ok Excel real, revisión, cancelar, aplicar, persistir, costos y depreciación');
 
-    const proforma=await context.newPage();await proforma.goto(base+'/modulos/proforma/index.html');assert.match(await proforma.locator('#income-proforma-body').innerText(),/60,900.00/);assert.doesNotMatch(await proforma.locator('#paper-badge-status').innerText(),/INCOMPLETO/);
-    await proforma.click('#tab-balance');assert.match(await proforma.locator('#paper-badge-status').innerText(),/SIN ACTIVAR/);await proforma.locator('#tab-balance').press('Home');assert.match(await proforma.locator('#paper-badge-status').innerText(),/PRESUPUESTADA/);
-    await step(1);await fill('products.0.values.2026-10.price',660);await save();await proforma.waitForFunction(()=>document.getElementById('income-proforma-body').textContent.includes('61,950.00'));
+    const proforma=await context.newPage();await proforma.goto(base+'/modulos/proforma/index.html');assert.doesNotMatch(await proforma.locator('#income-proforma-body').innerText(),/60,900.00/);assert.match(await proforma.locator('#paper-badge-status').innerText(),/PENDIENTES/);
+    await proforma.click('#tab-balance');assert.match(await proforma.locator('#paper-badge-status').innerText(),/PENDIENTES/);await proforma.locator('#tab-balance').press('Home');assert.equal(await proforma.locator('#report-income').isVisible(),true);
+    await step(1);await fill('products.0.values.2026-10.price',660);await save();assert.doesNotMatch(await proforma.locator('#income-proforma-body').innerText(),/61,950.00/);
     await fill('products.0.values.2026-10.price',650);await save();
-    console.log('ok Proforma comparte resultados, navegación por teclado y sincronización');
+    console.log('ok Proforma independiente del presupuesto y navegación por teclado');
 
     await page.click('[data-action="copy"]');await fill('name','Plan anual');await step(0);await select('config.frequency','annual');await page.selectOption('#budget-duration','2');await page.click('[data-action="product"]');await fill('products.1.name','Segundo producto');await step(1);
     for(let i=0;i<2;i++)for(const year of ['2026','2027']){await fill(`products.${i}.values.${year}.units`,10);await fill(`products.${i}.values.${year}.price`,100+i*50);}
@@ -53,7 +53,7 @@ function file(){
     const opening=Object.fromEntries(Object.keys(B.openingFields).map(k=>[k,0]));Object.assign(opening,{cash:50000,inventory:13300,fixed:10000,equity:73300});
     for(const [k,v] of Object.entries(opening))await fill('advanced.opening.'+k,v);
     await fill('advanced.collectionPercent',100);await fill('advanced.paymentPercent',100);await page.check('[data-path="advanced.confirmed"]');await save();r=await analysis();assert.equal(r.ready,true);assert.equal(r.closing.difference,0);
-    await proforma.click('#tab-balance');await proforma.waitForFunction(()=>!document.getElementById('paper-badge-status').textContent.includes('INCOMPLETO'));assert.match(await proforma.locator('#balance-equation-msg').innerText(),/Activos = pasivos/);
+    await proforma.click('#tab-balance');assert.match(await proforma.locator('#balance-equation-msg').innerText(),/Completa las premisas/);
     console.log('ok caja avanzada y balance conciliado');
 
     assert.equal(await page.locator('#budget-editor .cash-budget').count(),3);
@@ -113,7 +113,7 @@ function file(){
 
     await page.setViewportSize({width:390,height:844});await step(5);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);await page.screenshot({path:'.reference/budget-stages-mobile.png',fullPage:true});
     await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'.reference/budget-stages-desktop.png',fullPage:true});await proforma.click('#tab-income');await proforma.screenshot({path:'.reference/budget-proforma.png',fullPage:true});
-    await proforma.emulateMedia({media:'print'});assert.match(await proforma.locator('#paper-period').innerText(),/2026-10 a 2026-12/);await proforma.emulateMedia({media:'screen'});
+    await proforma.emulateMedia({media:'print'});assert.equal(await proforma.locator('#report-income').isVisible(),true);assert.doesNotMatch(await proforma.locator('#paper-period').innerText(),/2026-10 a 2026-12/);await proforma.emulateMedia({media:'screen'});
     assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);console.log('ok vista móvil, impresión y ejecución sin errores ni conexiones externas');
     await context.close();
   }finally{await browser.close();}
