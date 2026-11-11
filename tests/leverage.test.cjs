@@ -3,7 +3,10 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const C = require('../assets/js/casos.js'), B = require('../assets/js/budget.js');
 const E = require('../assets/js/break-even.js'), L = require('../assets/js/leverage.js');
+const P = require('../assets/js/proforma.js');
 const near = (a,b) => assert.ok(Number.isFinite(a) && Math.abs(a-b) < 1e-7, String(a) + ' != ' + b);
+// Compatibilidad de informes antiguos suministrados explícitamente, sin selección automática.
+const analyzeBudget = c => L.analyze(c,'proforma',B.analyze(c));
 function fixture(count=1) {
   let c = C.blankCase('Proyección de control');
   c.currency='C$'; c.scale='en miles';
@@ -17,8 +20,32 @@ function fixture(count=1) {
   }
   c=B.saveProjection(c,s);return {c,s:c.params.budget};
 }
-test('El adaptador real coincide con Proforma y no modifica la empresa ni el presupuesto',()=>{
-  const {c}=fixture(),before=JSON.stringify(c),r=B.analyze(c),a=L.analyze(c);
+
+test('Proyección Proforma sin histórico guardado no selecciona el presupuesto anterior',()=>{
+  const {c}=fixture(),before=JSON.stringify(c),budget=B.analyze(c);
+  assert.equal(c.params.proforma,undefined);near(budget.totals.sales,300000);
+  const a=L.analyze(c,'proforma');
+  assert.equal(a.unavailable,true,'No debe presentar el presupuesto como Proforma');
+  for(const key of ['sales','ebit','ebt','gao','gaf','gat'])assert.equal(a[key],null,key);
+  assert.equal(L.scenario(a,10),null);
+  assert.notEqual(a.projectionName,'Octubre');
+  assert.equal(JSON.stringify(c),before);near(B.analyze(c).totals.sales,300000);
+});
+
+test('Proforma guardada tiene prioridad; si queda inválida no recurre al presupuesto',()=>{
+  let {c}=fixture();c.income=C.samples.dayton().income;
+  const s=P.newProjection(c);
+  Object.assign(s,{start:'2026-01-01',end:'2026-12-31',method:'mixed',salesValue:0,dividends:0});
+  for(const a of c.income.filter(a=>['costSales','opex'].includes(a.category)))s.lines[a.id]={fixedPercent:a.category==='costSales'?0:100};
+  c=P.saveProjection(c,s);
+  const a=L.analyze(c,'proforma');assert.equal(a.unavailable,false,a.reason);
+  near(a.sales,178909);near(a.ebit,P.analyze(c).income.ebit);near(B.analyze(c).totals.sales,300000);
+  c.params.proforma.salesValue=null;
+  assert.equal(L.analyze(c,'proforma').unavailable,true);assert.equal(L.analyze(c,'proforma').sales,null);
+  near(B.analyze(c).totals.sales,300000);
+});
+test('El informe presupuestario explícito conserva resultados y no modifica los datos',()=>{
+  const {c}=fixture(),before=JSON.stringify(c),r=B.analyze(c),a=analyzeBudget(c);
   assert.equal(a.unavailable,false,a.reason);near(a.sales,300000);near(a.cm,120000);
   near(a.ebit,r.totals.ebit);near(a.ebt,r.totals.ebt);
   near(a.gao,2.4);near(a.gaf,1.25);near(a.gat,3);
@@ -29,38 +56,38 @@ test('El adaptador real coincide con Proforma y no modifica la empresa ni el pre
 });
 test('Otros ingresos y gastos se conservan incluso en el escenario Base',()=>{
   const {c,s}=fixture();Object.assign(s.result,{otherEnabled:true,otherIncome:{'2026-10':15000},otherExpenses:{'2026-10':5000}});
-  const a=L.analyze(c),r=B.analyze(c);
+  const a=analyzeBudget(c),r=B.analyze(c);
   near(a.ebt,50000);near(a.gaf,1);near(a.gat,2.4);
   near(L.scenario(a,0).ebt,r.totals.ebt);near(L.scenario(a,10).ebt,62000);
   s.result.otherExpenses['2026-10']=30000;
-  const lossOther=L.analyze(c);near(lossOther.ebt,25000);near(L.scenario(lossOther,0).ebt,25000);
+  const lossOther=analyzeBudget(c);near(lossOther.ebt,25000);near(L.scenario(lossOther,0).ebt,25000);
 });
 test('No se sustituyen ceros, pérdidas ni contribuciones negativas por cifras de ejemplo',()=>{
   const {c,s}=fixture();s.expenses[0].values['2026-10']=120000;
-  let a=L.analyze(c);assert.equal(a.gao,null);near(a.gaf,0);assert.equal(a.gat,null);
+  let a=analyzeBudget(c);assert.equal(a.gao,null);near(a.gaf,0);assert.equal(a.gat,null);
   assert.equal(L.scenario(a,10).changes.ebit.relative,null);
   s.expenses[0].values['2026-10']=110000;
-  a=L.analyze(c);near(a.ebt,0);assert.equal(a.gaf,null);
+  a=analyzeBudget(c);near(a.ebt,0);assert.equal(a.gaf,null);
   s.expenses[0].values['2026-10']=150000;
-  a=L.analyze(c);near(a.gao,-4);near(a.gaf,.75);near(a.gat,-3);
+  a=analyzeBudget(c);near(a.gao,-4);near(a.gaf,.75);near(a.gat,-3);
   assert.equal(L.scenario(a,10).changes.ebit.relative,null);
   near(L.scenario(a,10).changes.ebit.absolute,12000);
   s.products[0].values['2026-10'].unitCost=1100;
-  a=L.analyze(c);near(a.cm,-30000);assert.equal(a.unavailable,false);
+  a=analyzeBudget(c);near(a.cm,-30000);assert.equal(a.unavailable,false);
   s.products[0].values['2026-10'].units=0;
-  a=L.analyze(c);near(a.sales,0);near(a.gao,0);assert.equal(a.variableRatio,null);
+  a=analyzeBudget(c);near(a.sales,0);near(a.gao,0);assert.equal(a.variableRatio,null);
   assert.equal(L.scenario(a,10).changes.sales.relative,null);
 });
 test('Datos incompletos, caja independiente y contexto cambiado quedan pendientes',()=>{
   const {c,s}=fixture();s.result.interest['2026-10']=null;
-  assert.equal(L.analyze(c).unavailable,true);
+  assert.equal(analyzeBudget(c).unavailable,true);
   s.result.interest['2026-10']=10000;s.result.taxMode='pending';
-  assert.equal(L.analyze(c).unavailable,true);
+  assert.equal(analyzeBudget(c).unavailable,true);
   s.result.taxMode='none';s.mode='cash';
-  assert.match(L.analyze(c).reason,/caja independiente/);
+  assert.match(analyzeBudget(c).reason,/caja independiente/);
   s.mode='integrated';c.currency='USD';
-  assert.equal(L.analyze(c).unavailable,true);
-  c.currency='C$';c.scale='unidades';assert.equal(L.analyze(c).unavailable,true);
+  assert.equal(analyzeBudget(c).unavailable,true);
+  c.currency='C$';c.scale='unidades';assert.equal(analyzeBudget(c).unavailable,true);
   assert.equal(L.analyze(C.blankCase('Vacío'),'historical').unavailable,true);
   assert.equal(L.scenario(L.analyze(C.blankCase('Vacío')),10),null);
 });
@@ -74,30 +101,30 @@ test('Histórico respeta la clasificación de Punto de equilibrio y los otros re
 test('Moneda y escala se heredan sin multiplicar importes ni alterar razones',()=>{
   for(const currency of ['C$','$','USD'])for(const scale of ['','en miles','en millones']){
     const {c}=fixture();c.currency=currency;c.scale=scale;c.params.budget.context=B.context(c);
-    const a=L.analyze(c);assert.equal(a.currency,currency);assert.equal(a.scale,scale);
+    const a=analyzeBudget(c);assert.equal(a.currency,currency);assert.equal(a.scale,scale);
     near(a.sales,300000);near(a.gao,2.4);assert.equal(C.fmt.unit(a),C.fmt.unit(c));
     assert.equal(C.fmt.money(-15000,a),'−'+currency+' 15,000.00');
   }
 });
 test('Se recalcula al cambiar ventas, costos, gastos, intereses o proyección activa',()=>{
-  let {c,s}=fixture(3);let a=L.analyze(c);
+  let {c,s}=fixture(3);let a=analyzeBudget(c);
   near(a.sales,900000);near(a.gao,2.4);
   s.products[0].values['2026-10'].units=600;
-  a=L.analyze(c);near(a.sales,1200000);near(a.ebt,B.analyze(c).totals.ebt);
+  a=analyzeBudget(c);near(a.sales,1200000);near(a.ebt,B.analyze(c).totals.ebt);
   s.products[0].values['2026-11'].unitCost=650;s.expenses[0].values['2026-12']=80000;s.result.interest['2026-12']=5000;
-  near(L.analyze(c).ebt,B.analyze(c).totals.ebt);
+  near(analyzeBudget(c).ebt,B.analyze(c).totals.ebt);
   const alternate=structuredClone(s);alternate.id='alternate';alternate.name='Alternativa';
   alternate.products[0].values['2026-10'].price=2000;c=B.saveProjection(c,alternate);
-  assert.equal(L.analyze(c).projectionName,'Alternativa');near(L.analyze(c).sales,1800000);
+  assert.equal(analyzeBudget(c).projectionName,'Alternativa');near(analyzeBudget(c).sales,1800000);
 });
 test('Proyecciones anteriores y casos límite de sensibilidad mantienen compatibilidad',()=>{
   const {c}=fixture();const old=B.blank(c);
   Object.assign(old,{inventoryUnits:0,inventoryPercent:0,nextUnits:300,openingSource:'manual',opening:{inventory:0},
     months:[{month:'2026-10',units:300,price:1000,unitCost:600,opex:70000,depreciation:0,otherIncome:0,interest:10000,taxes:0,capex:0,financing:0,dividends:0}]});
-  c.params.budget=old;const a=L.analyze(c);assert.equal(a.unavailable,false,a.reason);near(a.gao,2.4);
+  c.params.budget=old;const a=analyzeBudget(c);assert.equal(a.unavailable,false,a.reason);near(a.gao,2.4);
   near(L.scenario(a,-100).sales,0);near(L.scenario(a,-100).ebt,-80000);
   near(L.scenario(a,1000).sales,3300000);
   assert.equal(L.scenario(a,-101),null);assert.equal(L.scenario(a,NaN),null);
   const large=fixture();large.s.products[0].values['2026-10'].price=1e12;
-  assert.equal(Number.isFinite(L.analyze(large.c).gao),true);
+  assert.equal(Number.isFinite(analyzeBudget(large.c).gao),true);
 });

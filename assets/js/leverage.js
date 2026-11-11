@@ -4,7 +4,6 @@
   'use strict';
   const node = typeof module === 'object' && module.exports;
   const C = node ? require('./casos.js') : root.FinoraCasos;
-  const B = node ? require('./budget.js') : root.FinoraBudget;
   const P = node ? require('./proforma.js') : root.FinoraProforma;
   const E = node ? require('./break-even.js') : root.FinoraBreakEven;
   const F = C.engine;
@@ -17,7 +16,7 @@
     if (!c) { out.reason = 'Selecciona una empresa para analizar sus datos.'; return out; }
     let input, fixedCosts, fixedCostSales;
     if (source === 'proforma') {
-      const r = report || (P && (c.params?.proforma || !B) ? P.analyze(c) : B.analyze(c));
+      const r = report || P.analyze(c);
       out.projectionName = r.settings.name || 'Proyección';
       if (r.source === 'historical-proforma') {
         out.period = r.period;
