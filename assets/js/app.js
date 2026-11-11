@@ -46,6 +46,7 @@
     { id: 'planeacion-presupuestos', label: 'Planeación y presupuestos', icon: 'calendar' },
     { id: 'proforma', label: 'Proforma / reporte integrado', icon: 'file' },
     { id: 'presupuesto-personal', label: 'Presupuesto personal', icon: 'user' },
+    { id: 'levantamiento-activos', label: 'Levantamiento de activos', icon: 'box' },
     { id: 'inventario', label: 'Control básico de inventario', icon: 'box' }
   ];
   const base = document.body.dataset.base || './';
