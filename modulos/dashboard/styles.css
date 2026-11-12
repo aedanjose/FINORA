@@ -21,6 +21,51 @@
 
 /* Etapa 1 · Composición del dashboard según la referencia aprobada. */
 body[data-page="dashboard"] { --dash-income:#1672e8; --dash-cost:#f28c28; --dash-expense:#d85a16; --dash-result:#15975b; --dash-card-green:#ecf8f3; --dash-card-blue:#edf4ff; --dash-card-rose:#fff2f3; --dash-card-violet:#f3f0ff; }
+body[data-page="dashboard"] .dash-side-stack { display:flex; flex-direction:column; gap:22px; }
+
+/* Tarjeta CCE en Dashboard */
+.dash-cce .panel-header { padding-bottom:12px; }
+.dash-cce-card { padding:0 24px 20px; display:flex; flex-direction:column; gap:14px; }
+.dash-cce-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.dash-cce-kpi-label { font-size:11.5px; color:var(--muted); display:block; }
+.dash-cce-val-row { display:flex; align-items:baseline; gap:6px; margin-top:2px; }
+.dash-cce-val { font-size:26px; font-weight:700; letter-spacing:-0.8px; font-variant-numeric:tabular-nums; color:var(--ink); }
+.dash-cce-val.muted { color:var(--muted); }
+.dash-cce-unit { font-size:12px; font-weight:600; color:var(--muted); }
+.dash-cce-badge { display:inline-flex; align-items:center; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:650; white-space:nowrap; }
+.dash-cce-badge.badge-amber { background:#fff4e5; color:#9a5b13; border:1px solid #fedba8; }
+.dash-cce-badge.badge-green { background:#e8f7f0; color:#0e6245; border:1px solid #b7e8d0; }
+.dash-cce-badge.badge-blue { background:#eaf2ff; color:#1853a8; border:1px solid #bed7ff; }
+.dash-cce-badge.badge-neutral { background:var(--surface-soft); color:var(--muted); border:1px solid var(--border); }
+.dash-cce-note { font-size:11.5px; line-height:1.6; color:var(--muted); margin:0; }
+.dash-cce-chips { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+.dash-cce-chip { display:flex; flex-direction:column; gap:3px; padding:8px 10px; border-radius:8px; background:var(--surface-soft); border:1px solid var(--border); }
+.dash-cce-chip span { font-size:11px; color:var(--muted); }
+.dash-cce-chip strong { font-size:13px; font-weight:650; font-variant-numeric:tabular-nums; color:var(--ink); }
+.dash-cce-chip.inv { border-left:3px solid #176bd4; }
+.dash-cce-chip.col { border-left:3px solid #15975b; }
+.dash-cce-chip.pay { border-left:3px solid #dc7b15; }
+.dash-cce-mini-timeline { display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:var(--surface-soft); border:1px solid var(--border); border-radius:10px; }
+.dash-cce-track-row { display:grid; grid-template-columns:85px minmax(0, 1fr) 55px; align-items:center; gap:10px; font-size:11px; }
+.dash-cce-track-lbl { color:var(--muted); white-space:nowrap; }
+.dash-cce-rail { position:relative; height:8px; border-radius:999px; background:var(--border); overflow:hidden; }
+.dash-cce-fill { position:absolute; top:0; bottom:0; border-radius:999px; }
+.dash-fill-oc { background:linear-gradient(90deg, #176bd4, #15975b); }
+.dash-fill-pay { background:#dc7b15; }
+.dash-gap-row .dash-cce-track-lbl { font-weight:650; color:var(--ink); }
+.dash-fill-gap { background:#7475cf; }
+.cce-gap .dash-fill-gap { background:#d85a16; }
+.cce-surplus .dash-fill-gap { background:#15975b; }
+.cce-balanced .dash-fill-gap { background:#1672e8; }
+.dash-cce-track-val { text-align:right; font-weight:650; font-variant-numeric:tabular-nums; color:var(--ink); }
+.dash-cce-interpretation { font-size:11.5px; line-height:1.6; color:var(--muted); margin:0; }
+.dash-cce-action { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:650; color:var(--blue); text-decoration:none; margin-top:2px; }
+.dash-cce-action .icon { width:14px; height:14px; }
+.dash-cce-action:hover { text-decoration:underline; }
+
+html[data-presentation="on"] .dash-cce-badge.badge-amber { background:#473012; color:#ffd08a; border-color:#6e4b1c; }
+html[data-presentation="on"] .dash-cce-badge.badge-green { background:#133d2c; color:#7ee2b6; border-color:#1c5941; }
+html[data-presentation="on"] .dash-cce-badge.badge-blue { background:#183259; color:#9ec5fe; border-color:#264f8c; }
 body[data-page="dashboard"] .dashboard-main { max-width:1800px; width:100%; padding:24px 28px 32px; }
 body[data-page="dashboard"] .topbar { min-height:68px; padding:12px 28px; box-shadow:0 1px 0 #0a204008; }
 body[data-page="dashboard"] .breadcrumb-current { font-size:17px; font-weight:700; }

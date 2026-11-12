@@ -145,9 +145,75 @@
     const table = `<div class="table-scroll"><table class="account-table ratio-table"><thead><tr><th scope="col">Razón</th><th scope="col">Fórmula</th><th scope="col">${esc(p.previous)}</th><th scope="col">${esc(p.current)}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="table-footnote">La actividad del período actual usa el promedio de los dos balances y 365 días. El período anterior requiere un balance inicial adicional. Las compras estimadas y las ventas a crédito se informan abajo. Pasa el cursor sobre «—» para ver qué dato falta.</p>`;
     let dupont = empty('DuPont necesita el estado de resultados', 'Con ventas y utilidad neta se descompone el ROE en margen, rotación y multiplicador de capital.');
     const d = r.current?.profitability?.dupont;
+    const roaMetric = r.current?.profitability?.metrics?.roa;
     if (d && d.roe?.value !== null && d.roe?.value !== undefined) {
-      dupont = `<div class="panel-body"><div class="dupont-flow"><div class="dupont-factor"><span>Margen sobre utilidad neta</span><strong>${fmt.pct(d.margin.value)}</strong><small>Utilidad neta / ventas</small></div><span class="math-symbol">×</span><div class="dupont-factor"><span>Rotación de activos</span><strong>${fmt.plain(d.turnover.value, 3)}</strong><small>Ventas / activos</small></div><span class="math-symbol">×</span><div class="dupont-factor"><span>Multiplicador de capital</span><strong>${fmt.plain(d.leverage.value, 3)}</strong><small>Activos / capital</small></div><span class="math-symbol">=</span><div class="dupont-result"><span>ROE ${esc(p.current)}</span><strong>${fmt.pct(d.roe.value)}</strong><small>Rendimiento del capital</small></div></div>
-        <p class="note">Cada ${esc(c.currency)} 100 de capital generó ${esc(c.currency)} ${fmt.plain(d.roe.value * 100)} de utilidad neta en ${esc(p.current)}. Se usan los saldos de activos y capital al cierre.</p></div>`;
+      const roaValue = Number.isFinite(roaMetric?.value) ? roaMetric.value : (d.margin.value * d.turnover.value);
+      const roaAmt = Math.abs(roaValue * 100);
+      const curr = esc(c.currency || '');
+      const roaExplanation = roaValue < 0
+        ? `Cada ${curr} 100 invertidos en activos registraron una pérdida neta de ${curr} ${fmt.plain(roaAmt)} durante ${esc(p.current)}.`
+        : roaValue === 0
+        ? `Cada ${curr} 100 invertidos en activos generaron ${curr} 0.00 de utilidad neta durante ${esc(p.current)} (resultado en equilibrio).`
+        : `Cada ${curr} 100 invertidos en activos generaron ${curr} ${fmt.plain(roaAmt)} de utilidad neta durante ${esc(p.current)}.`;
+
+      dupont = `<div class="panel-body">
+        <div class="dupont-grid">
+          <!-- Etapa 1: Margen × Rotación = ROA -->
+          <div class="dupont-stage">
+            <span class="dupont-stage-badge">Etapa 1 · Rendimiento operativo sobre activos</span>
+            <div class="dupont-row">
+              <div class="dupont-factor">
+                <span>Margen sobre utilidad neta</span>
+                <strong class="${d.margin.value < 0 ? 'num-negative' : ''}">${fmt.pct(d.margin.value)}</strong>
+                <small>Utilidad neta / ventas</small>
+              </div>
+              <span class="math-symbol">×</span>
+              <div class="dupont-factor">
+                <span>Rotación de activos</span>
+                <strong>${fmt.plain(d.turnover.value, 3)}</strong>
+                <small>Ventas / activos</small>
+              </div>
+              <span class="math-symbol">=</span>
+              <div class="dupont-factor dupont-intermediate">
+                <span class="dupont-tag">Rendimiento de activos</span>
+                <strong class="${roaValue < 0 ? 'num-negative' : ''}">ROA ${fmt.pct(roaValue)}</strong>
+                <small>Margen × Rotación</small>
+              </div>
+            </div>
+            <p class="dupont-subtext">${esc(roaExplanation)}</p>
+          </div>
+
+          <div class="dupont-connector" aria-hidden="true">
+            <span class="dupont-connector-line"></span>
+            <span class="dupont-connector-arrow">↓</span>
+          </div>
+
+          <!-- Etapa 2: ROA × Multiplicador = ROE -->
+          <div class="dupont-stage">
+            <span class="dupont-stage-badge">Etapa 2 · Apalancamiento y rendimiento para el accionista</span>
+            <div class="dupont-row">
+              <div class="dupont-factor dupont-intermediate">
+                <span class="dupont-tag">Base operativa</span>
+                <strong class="${roaValue < 0 ? 'num-negative' : ''}">ROA ${fmt.pct(roaValue)}</strong>
+                <small>Utilidad neta / activos</small>
+              </div>
+              <span class="math-symbol">×</span>
+              <div class="dupont-factor">
+                <span>Multiplicador de capital</span>
+                <strong>${fmt.plain(d.leverage.value, 3)}</strong>
+                <small>Activos / capital</small>
+              </div>
+              <span class="math-symbol">=</span>
+              <div class="dupont-result">
+                <span>ROE ${esc(p.current)}</span>
+                <strong class="${d.roe.value < 0 ? 'num-negative' : ''}">${fmt.pct(d.roe.value)}</strong>
+                <small>Rendimiento del capital</small>
+              </div>
+            </div>
+            <p class="dupont-subtext">Cada ${curr} 100 de capital generó ${curr} ${fmt.plain(d.roe.value * 100)} de utilidad neta en ${esc(p.current)}. Se usan los saldos de activos y capital al cierre.</p>
+          </div>
+        </div>
+      </div>`;
     }
     $('panel-ratios').innerHTML = panel('Razones financieras', `${esc(p.previous)} y ${esc(p.current)}`, table) + renderCCE(c,r) + renderRetained(c,i) + panel('Modelo DuPont', `Los tres motores del ROE · ${esc(p.current)}`, dupont);
   }
@@ -159,13 +225,173 @@
     return panel('Cambios en utilidades retenidas','Comprobación entre balances y resultados',`<div class="panel-body"><p>Saldo inicial: ${esc(fmtMoney(r.prior))} · Saldo final: ${esc(fmtMoney(r.current))} · Cambio entre balances: <strong>${esc(fmtMoney(r.change))}</strong></p><p>Dividendos totales informados: ${esc(fmtMoney(r.paid))} · Utilidad neta menos dividendos: ${esc(fmtMoney(r.fromIncome))} · Incremento reportado: ${esc(fmtMoney(r.reported))}</p><p>${agrees===null?'Faltan datos para comprobar el cambio; no se asume que los dividendos no especificados sean preferentes.':agrees?'El cambio coincide con la utilidad neta menos los dividendos informados.':'El cambio no coincide; revisa aportes, ajustes u otros movimientos patrimoniales.'}</p></div>`);
   }
   function renderCCE(c,r) {
-    const cfg=c.params?.academicAnalysis?.current||{}, a=r.current?.activity, m=a?.metrics||{}, days=[['Inventario',m.inventoryDays],['Cobro',m.collectionDays],['Pago',m.paymentDays]];
-    const valid=Number.isFinite(a?.cce), max=Math.max(1,...days.map(([,v])=>Number.isFinite(v?.value)?v.value:0));
-    const bars=days.map(([label,value],index)=>{const v=value?.value;return `<div class="cce-line"><span>${esc(label)}</span><div class="cce-track"><span class="cce-bar cce-bar-${index}" style="width:${Number.isFinite(v)?Math.max(0,Math.min(100,v/max*100)):0}%"></span></div><strong>${Number.isFinite(v)?esc(fmt.plain(v,2))+' días':'Pendiente'}</strong></div>`;}).join('');
-    const interpretation=valid?(a.cce>0?'La empresa necesita financiar el ciclo durante '+fmt.plain(a.cce,2)+' días.':a.cce<0?'La empresa cobra antes de pagar; el ciclo es negativo en '+fmt.plain(Math.abs(a.cce),2)+' días.':'El ciclo de conversión de efectivo es cero.'):'Completa las ventas a crédito y las compras a crédito, además de los saldos iniciales y finales necesarios.';
-    const prior=Number.isFinite(r.previous?.activity?.cce)?`Variación: ${fmt.plain(Math.abs(a.cce-r.previous.activity.cce),2)} días.`:'No se puede comparar con el período anterior sin su balance inicial.';
-    const body=`<div class="panel-body"><p>Base: 365 días. El período ${esc(c.periods.current)} usa los saldos promedio de ${esc(c.periods.previous)} y ${esc(c.periods.current)}.</p><form id="cce-premises" class="form-grid"><label class="field"><span class="field-label">Ventas a crédito del período (vacío: usar dato del estado)</span><input class="input" type="number" min="0" step="any" name="creditSales" value="${esc(cfg.creditSales??'')}"></label><label class="field"><span class="field-label">Compras a crédito estimadas (% del costo; vacío: usar dato del estado)</span><input class="input" type="number" min="0" max="100" step="any" name="purchaseRate" value="${esc(cfg.purchaseRate??'')}"></label><button class="button button-primary" type="submit">Guardar premisas</button><p id="cce-error" role="alert"></p></form><p class="note">${esc(a?.creditSource||'Ventas a crédito pendientes')} · ${esc(a?.purchaseSource||'Compras a crédito pendientes')}. Las premisas son independientes de otros módulos.</p><figure class="cce-chart" aria-label="Días de inventario, cobro y pago"><figcaption>Duración de cada período</figcaption>${bars}</figure><p><strong>CCE = inventario + cobro − pago: ${valid?(a.cce<0?'−':'')+esc(fmt.plain(a.cce,2))+' días':'pendiente'}</strong></p><p>${esc(interpretation)} ${valid?esc(prior):''}</p></div>`;
-    return panel('Ciclo de Conversión de Efectivo','Seguimiento de inventario, cobro y pago',body);
+    const cfg=c.params?.academicAnalysis?.current||{}, a=r.current?.activity, m=a?.metrics||{};
+    const invDays=m.inventoryDays?.value, colDays=m.collectionDays?.value, payDays=m.paymentDays?.value, cce=a?.cce;
+    const valid=Number.isFinite(cce)&&Number.isFinite(invDays)&&Number.isFinite(colDays)&&Number.isFinite(payDays);
+
+    // KPI Cards Grid
+    const kpiCard=(label,val,sub,colorCls)=>`<div class="cce-kpi-card ${colorCls}">
+      <span class="cce-kpi-lbl">${label}</span>
+      <strong class="cce-kpi-num">${Number.isFinite(val)?(val<0?'−':'')+fmt.plain(Math.abs(val),1):'—'}</strong>
+      <small class="cce-kpi-sub">${sub}</small>
+    </div>`;
+
+    const oc = valid ? (invDays + colDays) : null;
+    const kpis = `<div class="cce-kpi-grid">
+      ${kpiCard('Días de inventario', invDays, 'Tiempo en almacén', 'cce-kpi-inv')}
+      ${kpiCard('Días de cobro', colDays, 'Crédito a clientes', 'cce-kpi-col')}
+      ${kpiCard('Ciclo operativo', oc, 'Inventario + cobro', 'cce-kpi-oc')}
+      ${kpiCard('Días de pago', payDays, 'Crédito proveedores', 'cce-kpi-pay')}
+      ${kpiCard('Ciclo de conversión', cce, valid?(cce>0?'Financiamiento requerido':cce<0?'Autofinanciamiento':'Equilibrio exacto'):'Pendiente', valid?(cce>0?'cce-kpi-gap':cce<0?'cce-kpi-surplus':'cce-kpi-bal'):'')}
+    </div>`;
+
+    // SVG Timeline Diagram
+    let timelineGraphic = '';
+    if (valid) {
+      const maxDays = Math.max(oc, payDays, 1);
+      const svgW = 760, padL = 70, padR = 70, usableW = svgW - padL - padR;
+      const xPos = day => padL + (Math.max(0, day) / maxDays) * usableW;
+
+      const x0 = xPos(0);             // Compra (T=0)
+      const xInv = xPos(invDays);      // Venta (T=invDays)
+      const xPay = xPos(payDays);      // Pago (T=payDays)
+      const xCol = xPos(oc);           // Cobro (T=oc)
+
+      // Rango de la brecha CCE
+      const xGapStart = Math.min(xPay, xCol);
+      const xGapWidth = Math.max(2, Math.abs(xCol - xPay));
+
+      const gapColor = cce > 0 ? 'var(--dash-negative, #b34151)' : cce < 0 ? 'var(--dash-positive, #16735f)' : 'var(--blue, #1672e8)';
+      const gapLabel = cce > 0 ? `Brecha CCE: +${fmt.plain(cce, 1)} d (Financiamiento requerido)` : cce < 0 ? `Brecha CCE: −${fmt.plain(Math.abs(cce), 1)} d (Excedente de financiamiento)` : 'Equilibrio CCE: 0 días';
+
+      // Hitos ordenados para markers
+      const milestones = [
+        { label: '1. Compra', day: 0, x: x0, color: '#176bd4', role: 'Entrada inventario' },
+        { label: '2. Venta', day: invDays, x: xInv, color: '#2864f0', role: 'Salida almacén' },
+        { label: '3. Pago', day: payDays, x: xPay, color: '#dc7b15', role: 'Salida de caja' },
+        { label: '4. Cobro', day: oc, x: xCol, color: '#15975b', role: 'Entrada de caja' }
+      ];
+
+      timelineGraphic = `<div class="cce-timeline-wrap">
+        <h4 class="cce-section-title">Línea de tiempo del ciclo operativo y financiero</h4>
+        <svg class="cce-timeline-svg" viewBox="0 0 760 270" role="img" aria-label="Línea de tiempo interactiva de CCE. Inventario ${fmt.plain(invDays,1)} días, Cobro ${fmt.plain(colDays,1)} días, Pago ${fmt.plain(payDays,1)} días, CCE ${fmt.plain(cce,1)} días.">
+          <defs>
+            <linearGradient id="cce-oc-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#176bd4"/>
+              <stop offset="${(invDays / Math.max(1, oc)) * 100}%" stop-color="#2864f0"/>
+              <stop offset="100%" stop-color="#15975b"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Eje horizontal y grilla de días -->
+          <line class="cce-axis-line" x1="${padL}" y1="175" x2="${svgW - padR}" y2="175"/>
+          <text class="cce-axis-txt" x="${padL}" y="195" text-anchor="middle">Día 0</text>
+          <text class="cce-axis-txt" x="${svgW - padR}" y="195" text-anchor="middle">Día ${Math.round(maxDays)}</text>
+
+          <!-- Barra 1: Ciclo Operativo (Día 0 hasta Día OC) -->
+          <g class="cce-bar-group">
+            <rect class="cce-band" x="${x0}" y="42" width="${Math.max(2, xCol - x0)}" height="26" rx="6" fill="url(#cce-oc-grad)" opacity="0.9"/>
+            <text class="cce-bar-caption" x="${x0 + (xCol - x0) / 2}" y="59" text-anchor="middle" fill="#ffffff">Ciclo Operativo: ${fmt.plain(oc, 1)} días (Inventario + Cobro)</text>
+          </g>
+
+          <!-- Barra 2: Crédito de Proveedores (Día 0 hasta Día Pay) -->
+          <g class="cce-bar-group">
+            <rect class="cce-band" x="${x0}" y="84" width="${Math.max(2, xPay - x0)}" height="24" rx="6" fill="#dc7b15" opacity="0.85"/>
+            <text class="cce-bar-caption" x="${x0 + (xPay - x0) / 2}" y="100" text-anchor="middle" fill="#ffffff">Crédito Proveedores: ${fmt.plain(payDays, 1)} días</text>
+          </g>
+
+          <!-- Barra 3: Brecha CCE (Entre Pago y Cobro) -->
+          <g class="cce-bar-group">
+            <rect class="cce-band cce-band-gap" x="${xGapStart}" y="124" width="${xGapWidth}" height="24" rx="6" fill="${gapColor}" opacity="0.9"/>
+            <text class="cce-bar-caption" x="${xGapStart + xGapWidth / 2}" y="140" text-anchor="middle" fill="#ffffff">${esc(gapLabel)}</text>
+          </g>
+
+          <!-- Marcadores de Hitos Cronológicos -->
+          ${milestones.map(m => `
+            <g class="cce-milestone">
+              <line class="cce-guide-line" x1="${m.x}" y1="32" x2="${m.x}" y2="175" stroke="${m.color}" stroke-dasharray="2 3"/>
+              <circle class="cce-node" cx="${m.x}" cy="175" r="6" fill="#ffffff" stroke="${m.color}" stroke-width="3"/>
+              <text class="cce-node-label" x="${m.x}" y="215" text-anchor="middle" fill="var(--ink)">${m.label}</text>
+              <text class="cce-node-days" x="${m.x}" y="232" text-anchor="middle" fill="var(--muted)">${fmt.plain(m.day, 1)} d · ${m.role}</text>
+            </g>
+          `).join('')}
+        </svg>
+      </div>`;
+    } else {
+      timelineGraphic = `<div class="cce-empty-state">
+        <p class="muted">Ingresa las premisas de ventas y compras a crédito abajo para proyectar la línea de tiempo cronológica.</p>
+      </div>`;
+    }
+
+    // Interpretation Block
+    let interpretation = '';
+    if (valid) {
+      if (cce > 0) {
+        interpretation = `<div class="cce-insight-box insight-gap">
+          <h4><i data-icon="alert-circle"></i> Brecha de financiamiento operativo: ${fmt.plain(cce, 1)} días</h4>
+          <p>La empresa debe pagar a sus proveedores <strong>${fmt.plain(cce, 1)} días antes</strong> de recuperar el efectivo de la venta a través del cobro a clientes. Este período requiere financiamiento bancario, capital de trabajo propio o negociación de mayores plazos de pago para mitigar la presión sobre la liquidez.</p>
+        </div>`;
+      } else if (cce < 0) {
+        interpretation = `<div class="cce-insight-box insight-surplus">
+          <h4><i data-icon="check-circle"></i> Autofinanciamiento con proveedores: ${fmt.plain(Math.abs(cce), 1)} días</h4>
+          <p>La empresa cobra a sus clientes <strong>${fmt.plain(Math.abs(cce), 1)} días antes</strong> de tener que desembolsar el pago a sus proveedores. Los proveedores financian gratuitamente el 100% del ciclo operativo, generando un fondo de maniobra temporalmente disponible en caja.</p>
+        </div>`;
+      } else {
+        interpretation = `<div class="cce-insight-box insight-bal">
+          <h4><i data-icon="check-circle"></i> Ciclo equilibrado (0 días)</h4>
+          <p>El cobro a clientes coincide en el tiempo con la obligación de pago a proveedores. No se genera brecha neta de financiamiento ni excedente.</p>
+        </div>`;
+      }
+    } else {
+      interpretation = `<p class="note">Completa las ventas a crédito y las compras a crédito estimadas para desbloquear la interpretación financiera.</p>`;
+    }
+
+    // Period Comparison Block
+    let comparisonBlock = '';
+    const priorCCE = r.previous?.activity?.cce;
+    if (Number.isFinite(priorCCE) && valid) {
+      const diff = cce - priorCCE;
+      const improved = diff < 0;
+      comparisonBlock = `<div class="cce-comparison-card">
+        <h4>Comparación con período anterior (${esc(c.periods.previous)} vs. ${esc(c.periods.current)})</h4>
+        <div class="cce-comp-row">
+          <span>${esc(c.periods.previous)}: <strong>${fmt.plain(priorCCE, 1)} días</strong></span>
+          <span>${esc(c.periods.current)}: <strong>${fmt.plain(cce, 1)} días</strong></span>
+          <span class="badge ${improved ? 'badge-green' : 'badge-amber'}">${improved ? 'Mejora en ' + fmt.plain(Math.abs(diff), 1) + ' días' : 'Aumento de brecha en ' + fmt.plain(diff, 1) + ' días'}</span>
+        </div>
+      </div>`;
+    } else {
+      comparisonBlock = `<p class="table-footnote">Comparación histórica: ${Number.isFinite(priorCCE) ? 'Disponible.' : 'El período anterior requiere un balance inicial adicional para calcular el saldo promedio y rotación.'}</p>`;
+    }
+
+    const body = `<div class="panel-body">
+      <div id="cce-top" class="cce-header-meta">
+        <p>Base anual: 365 días. El período ${esc(c.periods.current)} calcula la actividad con los saldos promedio de los balances ${esc(c.periods.previous)} y ${esc(c.periods.current)}.</p>
+      </div>
+
+      ${kpis}
+      ${timelineGraphic}
+      ${interpretation}
+      ${comparisonBlock}
+
+      <form id="cce-premises" class="form-grid cce-premises-form">
+        <label class="field">
+          <span class="field-label">Ventas a crédito del período (dejar vacío para usar ventas netas del estado)</span>
+          <input class="input" type="number" min="0" step="any" name="creditSales" value="${esc(cfg.creditSales??'')}">
+        </label>
+        <label class="field">
+          <span class="field-label">Compras a crédito estimadas (% del costo; dejar vacío para usar 100%)</span>
+          <input class="input" type="number" min="0" max="100" step="any" name="purchaseRate" value="${esc(cfg.purchaseRate??'')}">
+        </label>
+        <div class="cce-form-actions">
+          <button class="button button-primary" type="submit">Guardar premisas CCE</button>
+        </div>
+        <p id="cce-error" role="alert"></p>
+      </form>
+      <p class="note">${esc(a?.creditSource||'Ventas a crédito pendientes')} · ${esc(a?.purchaseSource||'Compras a crédito pendientes')}. Las premisas son independientes y se guardan por empresa.</p>
+    </div>`;
+
+    return `<div id="cce">${panel('Ciclo de Conversión de Efectivo (CCE)', 'Cronología financiera de inventario, cobro a clientes y pago a proveedores', body)}</div>`;
   }
   $('panel-ratios').addEventListener('submit',event=>{
     if(event.target.id!=='cce-premises')return;event.preventDefault();const form=event.target,err=form.querySelector('#cce-error');
@@ -250,8 +476,22 @@
     });
   });
   let initial = tabs[0];
-  try { initial = tabs.find(t => t.dataset.tab === sessionStorage.getItem('finora:analisis-tab')) || initial; } catch (_) { /* sin preferencia */ }
+  const params = new URLSearchParams(window.location.search);
+  const targetTab = params.get('tab') || (window.location.hash === '#cce' ? 'ratios' : null);
+  if (targetTab) {
+    const matched = tabs.find(t => t.dataset.tab === targetTab);
+    if (matched) initial = matched;
+  } else {
+    try { initial = tabs.find(t => t.dataset.tab === sessionStorage.getItem('finora:analisis-tab')) || initial; } catch (_) { /* sin preferencia */ }
+  }
   selectTab(initial);
+
+  if (window.location.hash === '#cce') {
+    setTimeout(() => {
+      const el = $('cce');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
 
   $('print-analysis').addEventListener('click', () => window.print());
   window.FinoraCaseBar.mount($('case-bar'));

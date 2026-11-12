@@ -52,6 +52,111 @@
     const donut=valid?`<div class="dash-donut"><svg viewBox="0 0 240 220" role="img" aria-label="Pasivos ${esc(pct(share))} y patrimonio ${esc(pct(1-share))} del financiamiento"><circle class="dash-donut-track" cx="120" cy="106" r="76"/><circle cx="120" cy="106" r="76" fill="none" stroke="var(--dash-teal)" stroke-width="21"/><circle cx="120" cy="106" r="76" fill="none" stroke="var(--dash-violet)" stroke-width="21" stroke-dasharray="${circ*share} ${circ}" transform="rotate(-90 120 106)"/><text class="dash-donut-value" x="120" y="104" text-anchor="middle">${pct(share)}</text><text class="dash-donut-caption" x="120" y="126" text-anchor="middle">Pasivos / financiamiento</text></svg></div>`:noData(finite(equity)&&equity<0?'El patrimonio es negativo. Revisa su composición en los estados.':'Completa pasivo y patrimonio para ver su composición.');
     return `${donut}<div class="dash-funding-legend"><div><span><b class="dash-dot dash-violet"></b>Pasivos</span><strong>${esc(money(liabilities))}</strong></div><div><span><b class="dash-dot dash-teal"></b>Patrimonio</span><strong>${esc(money(equity))}</strong></div></div><div class="dash-funding-base"><span>Total de activos</span><strong>${esc(money(assets))}</strong></div><div class="dash-debt-caption"><span>Pasivo / activo</span><strong>${esc(pct(data.debtRatio.current))}</strong><small>${finite(data.debtRatio.current)&&finite(data.debtRatio.previous)?`${C.fmt.pp(data.debtRatio.current-data.debtRatio.previous,1)} vs. ${esc(c.periods.previous)}`:'Completa ambos años para comparar.'}</small></div>`;
   }
+  function cceCardHTML(){
+    let r=null, a=null, m=null;
+    try {
+      if(window.FinoraAcademicAnalysis?.analyze) {
+        r = window.FinoraAcademicAnalysis.analyze(c);
+        a = r?.current?.activity;
+        m = a?.metrics;
+      }
+    } catch(_) {}
+    const invDays = m?.inventoryDays?.value;
+    const colDays = m?.collectionDays?.value;
+    const payDays = m?.paymentDays?.value;
+    const cce = a?.cce;
+    const valid = finite(cce) && finite(invDays) && finite(colDays) && finite(payDays);
+
+    if(!valid) {
+      const anyDays = [invDays, colDays, payDays].some(finite);
+      return `<div class="dash-cce-card dash-cce-empty">
+        <div class="dash-cce-head">
+          <div>
+            <span class="dash-cce-kpi-label">Ciclo de Conversión de Efectivo</span>
+            <div class="dash-cce-val-row"><strong class="dash-cce-val muted">—</strong><span class="dash-cce-unit">días</span></div>
+          </div>
+          <span class="dash-cce-badge badge-neutral">Datos pendientes</span>
+        </div>
+        <p class="dash-cce-note">${anyDays?'Completa las premisas de ventas y compras a crédito en Análisis Financiero para calcular el CCE exacto.':'Requiere inventario, cuentas por cobrar, cuentas por pagar y estado de resultados.'}</p>
+        <div class="dash-cce-chips">
+          <span class="dash-cce-chip"><span>Inventario</span><strong>${finite(invDays)?number(invDays)+' d':'—'}</strong></span>
+          <span class="dash-cce-chip"><span>Cobro</span><strong>${finite(colDays)?number(colDays)+' d':'—'}</strong></span>
+          <span class="dash-cce-chip"><span>Pago</span><strong>${finite(payDays)?number(payDays)+' d':'—'}</strong></span>
+        </div>
+        <a class="dash-cce-action" href="../analisis-financiero/index.html?tab=ratios#cce">Configurar premisas CCE <i data-icon="arrow-right"></i></a>
+      </div>`;
+    }
+
+    const operatingCycle = invDays + colDays;
+    const maxDays = Math.max(operatingCycle, payDays, 1);
+    const ocPct = Math.min(100, Math.max(0, (operatingCycle / maxDays) * 100));
+    const payPct = Math.min(100, Math.max(0, (payDays / maxDays) * 100));
+    const gapStart = Math.min(payPct, ocPct);
+    const gapWidth = Math.abs(ocPct - payPct);
+
+    let stateClass = 'cce-gap', badgeClass = 'badge-amber', badgeText = 'Requiere financiamiento';
+    let interpText = `La empresa necesita financiar ${number(cce)} días entre el pago a proveedores y el cobro.`;
+    if(cce < 0) {
+      stateClass = 'cce-surplus';
+      badgeClass = 'badge-green';
+      badgeText = 'Autofinanciamiento';
+      interpText = `Los proveedores financian la operación: se cobra ${number(Math.abs(cce))} días antes de pagar.`;
+    } else if(Math.abs(cce) < 0.01) {
+      stateClass = 'cce-balanced';
+      badgeClass = 'badge-blue';
+      badgeText = 'Equilibrio exacto';
+      interpText = 'Cobros y pagos sincronizados: no existe brecha de financiamiento operativo.';
+    }
+
+    return `<div class="dash-cce-card ${stateClass}">
+      <div class="dash-cce-head">
+        <div>
+          <span class="dash-cce-kpi-label">Ciclo de Conversión de Efectivo</span>
+          <div class="dash-cce-val-row">
+            <strong class="dash-cce-val ${cce<0?'dash-negative':''}">${cce<0?'−':''}${number(Math.abs(cce))}</strong>
+            <span class="dash-cce-unit">días</span>
+          </div>
+        </div>
+        <span class="dash-cce-badge ${badgeClass}">${badgeText}</span>
+      </div>
+
+      <div class="dash-cce-chips">
+        <div class="dash-cce-chip inv" title="Días de inventario">
+          <span>Inventario</span>
+          <strong>${number(invDays)} d</strong>
+        </div>
+        <div class="dash-cce-chip col" title="Período promedio de cobro">
+          <span>Cobro</span>
+          <strong>${number(colDays)} d</strong>
+        </div>
+        <div class="dash-cce-chip pay" title="Período promedio de pago">
+          <span>Pago</span>
+          <strong>${number(payDays)} d</strong>
+        </div>
+      </div>
+
+      <div class="dash-cce-mini-timeline" aria-label="Línea de tiempo de CCE: Ciclo operativo ${number(operatingCycle)} días, Crédito proveedores ${number(payDays)} días">
+        <div class="dash-cce-track-row">
+          <span class="dash-cce-track-lbl">Ciclo operativo</span>
+          <div class="dash-cce-rail"><div class="dash-cce-fill dash-fill-oc" style="width:${ocPct}%"></div></div>
+          <span class="dash-cce-track-val">${number(operatingCycle)} d</span>
+        </div>
+        <div class="dash-cce-track-row">
+          <span class="dash-cce-track-lbl">Crédito prov.</span>
+          <div class="dash-cce-rail"><div class="dash-cce-fill dash-fill-pay" style="width:${payPct}%"></div></div>
+          <span class="dash-cce-track-val">${number(payDays)} d</span>
+        </div>
+        <div class="dash-cce-track-row dash-gap-row">
+          <span class="dash-cce-track-lbl">${cce>=0?'Brecha neta':'Excedente'}</span>
+          <div class="dash-cce-rail"><div class="dash-cce-fill dash-fill-gap" style="left:${gapStart}%;width:${gapWidth}%"></div></div>
+          <span class="dash-cce-track-val ${cce<0?'dash-negative':''}">${cce<0?'−':''}${number(Math.abs(cce))} d</span>
+        </div>
+      </div>
+
+      <p class="dash-cce-interpretation">${esc(interpText)}</p>
+      <a class="dash-cce-action" href="../analisis-financiero/index.html?tab=ratios#cce">Ver línea de tiempo detallada <i data-icon="arrow-right"></i></a>
+    </div>`;
+  }
   function projectionChart(projected){
     const source=projectionMetric==='sales'?data.sales:data.profit,forecast=projected[projectionMetric];
     const points=[source.previous,source.current,forecast];
@@ -91,7 +196,7 @@
     const labels={positive:'Resultado positivo',negative:'Resultado negativo',neutral:'Resultado en equilibrio',incomplete:'Resultado por completar',review:'Información por revisar'};
     const descriptions={positive:'La empresa registra utilidad neta en el período actual.',negative:'Los resultados del período muestran una pérdida neta.',neutral:'La utilidad neta del período es cero.',incomplete:'Completa los resultados para evaluar la rentabilidad.',review:'Hay datos o comprobaciones pendientes en los estados.'};
     const cards=[['Ventas netas',data.sales.current,'sales','chart'],['Utilidad neta',data.profit.current,'profit','trend'],['Efectivo disponible',data.cash.current,'cash','wallet'],['Liquidez corriente',data.currentRatio.current,'liquidity','scale']];
-    content.innerHTML=`<div class="dash-context-line"><span>${esc(c.name)} · ${esc(c.periods.previous)} → ${esc(c.periods.current)}</span><span>Cifras en ${esc(C.fmt.unit(c))}${c.sample?' · Caso de ejemplo':''}</span></div><div class="dash-health ${data.state}" id="dashboard-health" data-state="${data.state}" role="status"><span class="dash-health-dot" aria-hidden="true"></span><strong>${labels[data.state]}</strong><span>${descriptions[data.state]}</span><a href="../analisis-financiero/index.html">Ver análisis <i data-icon="arrow-right"></i></a></div><section class="dash-kpis" aria-label="Indicadores principales">${cards.map(([label,value,key,icon])=>`<article class="stat-card dash-kpi"><div class="stat-topline"><span class="stat-label">${label}</span><span class="mini-icon"><i data-icon="${icon}"></i></span></div><p class="stat-value ${finite(value)&&value<0?'dash-negative':''}" id="dashboard-${key}">${esc(key==='liquidity'?finite(value)?number(value)+' ×':'—':money(value))}</p><div class="dash-kpi-change">${key==='liquidity'?`<span>${finite(data.currentRatio.previous)?number(data.currentRatio.previous)+' × en '+esc(c.periods.previous):'Sin base comparable'}</span>`:variation(key)}</div><p class="dash-kpi-foot">${key==='profit'?'Margen neto: '+esc(pct(data.margin.current)):key==='liquidity'?'Activo corriente / pasivo corriente':key==='cash'?'Saldo informado en el balance':'Cierre del período '+esc(c.periods.current)}</p></article>`).join('')}</section><div class="dash-grid dash-top-grid">${panel('Evolución financiera',`Comparación observada · ${esc(c.periods.previous)} y ${esc(c.periods.current)}`,`<div class="dash-comparison-meta"><div class="dash-legend"><span><b class="dash-dot dash-prior"></b>${esc(c.periods.previous)}</span><span><b class="dash-dot dash-teal"></b>${esc(c.periods.current)}</span></div><span>${esc(C.fmt.unit(c))}</span></div><div id="dashboard-comparison">${comparison()}</div>`,`<div class="dash-tabs" role="group" aria-label="Cambiar gráfico comparativo">${[['income','Resultados'],['balance','Estructura'],['cash','Efectivo']].map(([key,label])=>`<button type="button" data-chart-kind="${key}" aria-pressed="${chartKind===key}">${label}</button>`).join('')}</div>`,'dash-performance')}${panel('Acceso rápido','Continúa tu análisis',quickAccess(),'<i data-icon="spark"></i>','dash-quick')}</div><div class="dash-grid dash-bottom-grid">${panel('El siguiente paso, en cifras',`Escenario para ${esc(data.projection.label)} · Supuestos editables`,scenarioHTML(),`<div class="dash-tabs no-print" role="group" aria-label="Serie de proyección"><button type="button" data-projection-metric="sales" aria-pressed="${projectionMetric==='sales'}">Ventas</button><button type="button" data-projection-metric="profit" aria-pressed="${projectionMetric==='profit'}">Utilidad</button></div>`,'dash-scenario')}${panel('Cómo se financia la empresa',`Composición del financiamiento · ${esc(c.periods.current)}`,funding(),'<i data-icon="bank"></i>','dash-funding')}</div>${panel('Lectura del período','Prioridades basadas en tus cifras',priorities(),'<i data-icon="spark"></i>','dash-reading')}<section class="dash-detail-links no-print" aria-label="Explorar el detalle">${[['estados-financieros','grid','Estados financieros','El origen de tus cifras'],['analisis-financiero','chart','Análisis financiero','Razones y comparaciones'],['flujo-efectivo','wallet','Flujo de efectivo','Explicar el cambio de caja'],['punto-equilibrio','trend','Punto de equilibrio','Costos y margen de seguridad']].map(([path,icon,title,note])=>`<a href="../${path}/index.html"><span class="mini-icon"><i data-icon="${icon}"></i></span><div><strong>${title}</strong><span>${note}</span></div><i data-icon="arrow-up-right"></i></a>`).join('')}</section>`;
+    content.innerHTML=`<div class="dash-context-line"><span>${esc(c.name)} · ${esc(c.periods.previous)} → ${esc(c.periods.current)}</span><span>Cifras en ${esc(C.fmt.unit(c))}${c.sample?' · Caso de ejemplo':''}</span></div><div class="dash-health ${data.state}" id="dashboard-health" data-state="${data.state}" role="status"><span class="dash-health-dot" aria-hidden="true"></span><strong>${labels[data.state]}</strong><span>${descriptions[data.state]}</span><a href="../analisis-financiero/index.html">Ver análisis <i data-icon="arrow-right"></i></a></div><section class="dash-kpis" aria-label="Indicadores principales">${cards.map(([label,value,key,icon])=>`<article class="stat-card dash-kpi"><div class="stat-topline"><span class="stat-label">${label}</span><span class="mini-icon"><i data-icon="${icon}"></i></span></div><p class="stat-value ${finite(value)&&value<0?'dash-negative':''}" id="dashboard-${key}">${esc(key==='liquidity'?finite(value)?number(value)+' ×':'—':money(value))}</p><div class="dash-kpi-change">${key==='liquidity'?`<span>${finite(data.currentRatio.previous)?number(data.currentRatio.previous)+' × en '+esc(c.periods.previous):'Sin base comparable'}</span>`:variation(key)}</div><p class="dash-kpi-foot">${key==='profit'?'Margen neto: '+esc(pct(data.margin.current)):key==='liquidity'?'Activo corriente / pasivo corriente':key==='cash'?'Saldo informado en el balance':'Cierre del período '+esc(c.periods.current)}</p></article>`).join('')}</section><div class="dash-grid dash-top-grid">${panel('Evolución financiera',`Comparación observada · ${esc(c.periods.previous)} y ${esc(c.periods.current)}`,`<div class="dash-comparison-meta"><div class="dash-legend"><span><b class="dash-dot dash-prior"></b>${esc(c.periods.previous)}</span><span><b class="dash-dot dash-teal"></b>${esc(c.periods.current)}</span></div><span>${esc(C.fmt.unit(c))}</span></div><div id="dashboard-comparison">${comparison()}</div>`,`<div class="dash-tabs" role="group" aria-label="Cambiar gráfico comparativo">${[['income','Resultados'],['balance','Estructura'],['cash','Efectivo']].map(([key,label])=>`<button type="button" data-chart-kind="${key}" aria-pressed="${chartKind===key}">${label}</button>`).join('')}</div>`,'dash-performance')}${panel('Acceso rápido','Continúa tu análisis',quickAccess(),'<i data-icon="spark"></i>','dash-quick')}</div><div class="dash-grid dash-bottom-grid">${panel('El siguiente paso, en cifras',`Escenario para ${esc(data.projection.label)} · Supuestos editables`,scenarioHTML(),`<div class="dash-tabs no-print" role="group" aria-label="Serie de proyección"><button type="button" data-projection-metric="sales" aria-pressed="${projectionMetric==='sales'}">Ventas</button><button type="button" data-projection-metric="profit" aria-pressed="${projectionMetric==='profit'}">Utilidad</button></div>`,'dash-scenario')}<div class="dash-side-stack">${panel('Conversión de efectivo',`Ciclo operativo vs. crédito proveedores · ${esc(c.periods.current)}`,cceCardHTML(),'<i data-icon="repeat"></i>','dash-cce')}${panel('Cómo se financia la empresa',`Composición del financiamiento · ${esc(c.periods.current)}`,funding(),'<i data-icon="bank"></i>','dash-funding')}</div></div>${panel('Lectura del período','Prioridades basadas en tus cifras',priorities(),'<i data-icon="spark"></i>','dash-reading')}<section class="dash-detail-links no-print" aria-label="Explorar el detalle">${[['estados-financieros','grid','Estados financieros','El origen de tus cifras'],['analisis-financiero','chart','Análisis financiero','Razones y comparaciones'],['flujo-efectivo','wallet','Flujo de efectivo','Explicar el cambio de caja'],['punto-equilibrio','trend','Punto de equilibrio','Costos y margen de seguridad']].map(([path,icon,title,note])=>`<a href="../${path}/index.html"><span class="mini-icon"><i data-icon="${icon}"></i></span><div><strong>${title}</strong><span>${note}</span></div><i data-icon="arrow-up-right"></i></a>`).join('')}</section>`;
     window.Finora.hydrateIcons(content);
   }
   function readScenario(){
