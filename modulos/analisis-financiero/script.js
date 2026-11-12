@@ -264,17 +264,58 @@
       const gapColor = cce > 0 ? 'var(--dash-negative, #b34151)' : cce < 0 ? 'var(--dash-positive, #16735f)' : 'var(--blue, #1672e8)';
       const gapLabel = cce > 0 ? `Brecha CCE: +${fmt.plain(cce, 1)} d (Financiamiento requerido)` : cce < 0 ? `Brecha CCE: −${fmt.plain(Math.abs(cce), 1)} d (Excedente de financiamiento)` : 'Equilibrio CCE: 0 días';
 
-      // Hitos ordenados para markers
-      const milestones = [
-        { label: '1. Compra', day: 0, x: x0, color: '#176bd4', role: 'Entrada inventario' },
-        { label: '2. Venta', day: invDays, x: xInv, color: '#2864f0', role: 'Salida almacén' },
-        { label: '3. Pago', day: payDays, x: xPay, color: '#dc7b15', role: 'Salida de caja' },
-        { label: '4. Cobro', day: oc, x: xCol, color: '#15975b', role: 'Entrada de caja' }
+      // Hitos base (ordenados cronológicamente por día de ocurrencia)
+      const rawEvents = [
+        { key: 'compra', name: 'Compra', day: 0, x: x0, color: '#176bd4', role: 'Entrada inventario' },
+        { key: 'venta', name: 'Venta', day: invDays, x: xInv, color: '#2864f0', role: 'Salida almacén' },
+        { key: 'pago', name: 'Pago', day: payDays, x: xPay, color: '#dc7b15', role: 'Salida de caja' },
+        { key: 'cobro', name: 'Cobro', day: oc, x: xCol, color: '#15975b', role: 'Entrada de caja' }
       ];
+
+      // Orden cronológico estricto según día real; en caso de coincidencia, se preserva orden lógico del flujo
+      const priorityOrder = { compra: 1, venta: 2, pago: 3, cobro: 4 };
+      rawEvents.sort((a, b) => a.day - b.day || (priorityOrder[a.key] || 0) - (priorityOrder[b.key] || 0));
+
+      // Asignar numeración cronológica real (1, 2, 3, 4) y resolver niveles de alternancia vertical para etiquetas
+      // Niveles verticales: nivel 0 (y=215, 230), nivel 1 (y=252, 267), nivel 2 (y=288, 303)
+      const MIN_LABEL_DISTANCE = 85;
+      const milestones = [];
+      const placedNodes = [];
+
+      rawEvents.forEach((ev, idx) => {
+        let level = 0;
+        // Buscar un nivel que no colisione con nodos cercanos anteriores
+        for (let l = 0; l < 3; l++) {
+          const hasCollision = placedNodes.some(p => p.level === l && Math.abs(p.x - ev.x) < MIN_LABEL_DISTANCE);
+          if (!hasCollision) {
+            level = l;
+            break;
+          }
+          level = l + 1;
+        }
+        placedNodes.push({ x: ev.x, level });
+
+        const yLabel = 215 + level * 34;
+        const yDesc = yLabel + 16;
+        const guideY2 = yLabel - 12;
+
+        milestones.push({
+          ...ev,
+          num: idx + 1,
+          label: `${idx + 1}. ${ev.name}`,
+          level,
+          yLabel,
+          yDesc,
+          guideY2
+        });
+      });
+
+      const maxLevel = Math.max(...milestones.map(m => m.level), 0);
+      const svgHeight = 245 + maxLevel * 36;
 
       timelineGraphic = `<div class="cce-timeline-wrap">
         <h4 class="cce-section-title">Línea de tiempo del ciclo operativo y financiero</h4>
-        <svg class="cce-timeline-svg" viewBox="0 0 760 270" role="img" aria-label="Línea de tiempo interactiva de CCE. Inventario ${fmt.plain(invDays,1)} días, Cobro ${fmt.plain(colDays,1)} días, Pago ${fmt.plain(payDays,1)} días, CCE ${fmt.plain(cce,1)} días.">
+        <svg class="cce-timeline-svg" viewBox="0 0 760 ${svgHeight}" role="img" aria-label="Línea de tiempo interactiva de CCE. Inventario ${fmt.plain(invDays,1)} días, Cobro ${fmt.plain(colDays,1)} días, Pago ${fmt.plain(payDays,1)} días, CCE ${fmt.plain(cce,1)} días.">
           <defs>
             <linearGradient id="cce-oc-grad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stop-color="#176bd4"/>
@@ -306,13 +347,14 @@
             <text class="cce-bar-caption" x="${xGapStart + xGapWidth / 2}" y="140" text-anchor="middle" fill="#ffffff">${esc(gapLabel)}</text>
           </g>
 
-          <!-- Marcadores de Hitos Cronológicos -->
+          <!-- Marcadores de Hitos Cronológicos con distribución sin solapes -->
           ${milestones.map(m => `
-            <g class="cce-milestone">
-              <line class="cce-guide-line" x1="${m.x}" y1="32" x2="${m.x}" y2="175" stroke="${m.color}" stroke-dasharray="2 3"/>
+            <g class="cce-milestone cce-milestone-lvl-${m.level}">
+              <line class="cce-guide-line" x1="${m.x}" y1="32" x2="${m.x}" y2="${m.guideY2}" stroke="${m.color}" stroke-dasharray="2 3"/>
               <circle class="cce-node" cx="${m.x}" cy="175" r="6" fill="#ffffff" stroke="${m.color}" stroke-width="3"/>
-              <text class="cce-node-label" x="${m.x}" y="215" text-anchor="middle" fill="var(--ink)">${m.label}</text>
-              <text class="cce-node-days" x="${m.x}" y="232" text-anchor="middle" fill="var(--muted)">${fmt.plain(m.day, 1)} d · ${m.role}</text>
+              ${m.level > 0 ? `<line class="cce-stem-line" x1="${m.x}" y1="181" x2="${m.x}" y2="${m.guideY2}" stroke="${m.color}" stroke-width="1.5" opacity="0.6"/>` : ''}
+              <text class="cce-node-label" x="${m.x}" y="${m.yLabel}" text-anchor="middle" fill="var(--ink)">${m.label}</text>
+              <text class="cce-node-days" x="${m.x}" y="${m.yDesc}" text-anchor="middle" fill="var(--muted)">${fmt.plain(m.day, 1)} d · ${m.role}</text>
             </g>
           `).join('')}
         </svg>

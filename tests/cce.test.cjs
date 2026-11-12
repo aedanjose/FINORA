@@ -22,13 +22,21 @@ function cceTimelineData(invDays, colDays, payDays) {
   const posPago = (payDays / maxDays) * 100;
   const posCobro = (operatingCycle / maxDays) * 100;
 
-  // Secuencia temporal de eventos
-  const events = [
-    { name: 'compra', day: 0, pos: posCompra },
-    { name: 'venta', day: invDays, pos: posVenta },
-    { name: 'pago', day: payDays, pos: posPago },
-    { name: 'cobro', day: operatingCycle, pos: posCobro }
-  ].sort((a, b) => a.day - b.day || a.pos - b.pos);
+  // Secuencia temporal de eventos con numeración cronológica real
+  const rawEvents = [
+    { key: 'compra', name: 'Compra', day: 0, pos: posCompra },
+    { key: 'venta', name: 'Venta', day: invDays, pos: posVenta },
+    { key: 'pago', name: 'Pago', day: payDays, pos: posPago },
+    { key: 'cobro', name: 'Cobro', day: operatingCycle, pos: posCobro }
+  ];
+  const priorityOrder = { compra: 1, venta: 2, pago: 3, cobro: 4 };
+  rawEvents.sort((a, b) => a.day - b.day || (priorityOrder[a.key] || 0) - (priorityOrder[b.key] || 0));
+
+  const events = rawEvents.map((e, idx) => ({
+    ...e,
+    num: idx + 1,
+    label: `${idx + 1}. ${e.name}`
+  }));
 
   // Tramo de financiamiento
   const gapStart = Math.min(payDays, operatingCycle);
@@ -68,7 +76,8 @@ test('CCE Positivo: el pago a proveedores ocurre antes del cobro a clientes', ()
   near(d.maxDays, 100);
 
   // Secuencia: Compra (0) -> Pago (30) -> Venta (60) -> Cobro (100)
-  assert.deepEqual(d.events.map(e => e.name), ['compra', 'pago', 'venta', 'cobro']);
+  assert.deepEqual(d.events.map(e => e.key), ['compra', 'pago', 'venta', 'cobro']);
+  assert.deepEqual(d.events.map(e => e.label), ['1. Compra', '2. Pago', '3. Venta', '4. Cobro']);
   near(d.posCompra, 0);
   near(d.posPago, 30);
   near(d.posVenta, 60);
@@ -90,7 +99,8 @@ test('CCE Positivo con pago posterior a la venta pero antes del cobro', () => {
   near(d.maxDays, 90);
 
   // Secuencia: Compra (0) -> Venta (40) -> Pago (60) -> Cobro (90)
-  assert.deepEqual(d.events.map(e => e.name), ['compra', 'venta', 'pago', 'cobro']);
+  assert.deepEqual(d.events.map(e => e.key), ['compra', 'venta', 'pago', 'cobro']);
+  assert.deepEqual(d.events.map(e => e.label), ['1. Compra', '2. Venta', '3. Pago', '4. Cobro']);
   near(d.gapStart, 60);
   near(d.gapEnd, 90);
   near(d.gapDays, 30);
@@ -105,7 +115,8 @@ test('CCE Negativo: el cobro a clientes ocurre antes del pago a proveedores', ()
   near(d.maxDays, 60);
 
   // Secuencia: Compra (0) -> Venta (20) -> Cobro (40) -> Pago (60)
-  assert.deepEqual(d.events.map(e => e.name), ['compra', 'venta', 'cobro', 'pago']);
+  assert.deepEqual(d.events.map(e => e.key), ['compra', 'venta', 'cobro', 'pago']);
+  assert.deepEqual(d.events.map(e => e.label), ['1. Compra', '2. Venta', '3. Cobro', '4. Pago']);
   near(d.posCobro, (40 / 60) * 100);
   near(d.posPago, 100);
 
@@ -123,6 +134,8 @@ test('CCE Cero: cobro y pago se realizan simultáneamente', () => {
   assert.equal(d.status, 'balanced');
   near(d.gapDays, 0);
   near(d.posPago, d.posCobro);
+  assert.deepEqual(d.events.map(e => e.key), ['compra', 'venta', 'pago', 'cobro']);
+  assert.deepEqual(d.events.map(e => e.label), ['1. Compra', '2. Venta', '3. Pago', '4. Cobro']);
 });
 
 test('Datos faltantes o incompletos: valid es false sin números inventados', () => {
