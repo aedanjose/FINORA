@@ -4,7 +4,7 @@
   const C = window.FinoraCasos;
   const esc = text => String(text ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
-  function mount(container, { editable = false } = {}) {
+  function mount(container, { editable = false, onCreate = null } = {}) {
     const { openDialog, toast, hydrateIcons } = window.Finora;
     function render() {
       const c = C.store.active(), list = C.store.list();
@@ -30,6 +30,7 @@
       container.querySelector('#case-select').addEventListener('change', event => {
         if (event.target.value !== '__new') { C.store.setActive(event.target.value); return; }
         event.target.value = c.id;
+        if (onCreate) { onCreate(); return; }
         // Una empresa nueva empieza por su documento: en Estados financieros se abre la puerta de entrada.
         if (window.FinoraStart) { window.FinoraStart.show(); return; }
         if (document.body.dataset.base !== undefined) { location.href = `${document.body.dataset.base}modulos/estados-financieros/index.html?nueva=1`; return; }

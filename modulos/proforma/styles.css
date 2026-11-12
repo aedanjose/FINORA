@@ -30,6 +30,9 @@
 @media print{.proforma-leverage-box,.proforma-leverage-metric{background:white;color:#101d3b;border-color:#b8c3d4}.proforma-leverage-box :is(p,small,strong,span){color:#101d3b}.proforma-leverage-header a{display:none}}
 
 /* Premisas y trazabilidad del módulo independiente. */
+.proforma-pending-message{padding:12px 15px;border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:10px;background:var(--surface-soft);color:var(--ink);font-size:13px;line-height:1.6}
+#proforma-pending summary{cursor:pointer;color:var(--blue);font-weight:600;line-height:1.6}
+#proforma-pending li{line-height:1.6;margin:6px 0;overflow-wrap:anywhere}
 .proforma-assumptions{margin-bottom:24px;padding:18px 22px}
 .proforma-layout>*{min-width:0}
 .proforma-assumptions details+details{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}

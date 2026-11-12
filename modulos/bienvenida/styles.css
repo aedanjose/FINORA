@@ -19,6 +19,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #9cbeff; outline-offs
 .intro-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 42px; padding: 23px 50px 27px; width: 100%; }
 .board-scene { position: relative; width: min(100%, 780px); perspective: 1100px; isolation: isolate; }
 .scene-glow { position: absolute; z-index: -1; inset: -20% -10%; background: radial-gradient(ellipse at center, #3b7ce629 0, transparent 68%); pointer-events: none; }
+@media (max-width: 760px) { .scene-glow { inset: -20% 0; } }
 .board-mount { position: absolute; top: -22px; height: 22px; left: 25%; right: 25%; display: flex; justify-content: space-between; }
 .board-mount span { height: 22px; width: 3px; background: linear-gradient(#526786, #8495b1); border-radius: 3px; }
 .board-rail { z-index: 2; position: absolute; top: -5px; left: -8px; right: -8px; height: 11px; border: 1px solid #d8e0ee; border-radius: 5px; background: linear-gradient(#fafcff, #c1cee2); box-shadow: 0 4px 8px #00000012; }
@@ -130,3 +131,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #9cbeff; outline-offs
 @media (max-width: 360px) { .intro-main { padding-left: 18px; padding-right: 18px; }.intro-header { padding-left: 18px; padding-right: 18px; }.whiteboard { padding-left: 13px; padding-right: 13px; }.board-topline { letter-spacing: .4px; }.balance-row strong { font-size: 7px; }.welcome h1 { font-size: 27px; } }
 @media (max-height: 760px) and (min-width: 651px) { .intro-header { padding-top: 20px; padding-bottom: 20px; }.intro-main { padding-top: 17px; padding-bottom: 18px; gap: 26px; }.board-scene { max-width: 690px; }.whiteboard { padding-top: 17px; padding-bottom: 13px; }.chart-canvas { height: 96px; }.balance-row { padding-top: 9px; padding-bottom: 9px; }.board-topline { margin-bottom: 12px; }.welcome h1 { font-size: 37px; }.welcome-eyebrow { margin-bottom: 10px; }.welcome-description { margin: 10px 0 16px; }.intro-footer { padding-top: 10px; padding-bottom: 15px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; }.enter-button:hover { transform: none; } }
+
+/* Identidad compartida con el espacio de trabajo. */
+.intro-header .brand { letter-spacing: .025em; font-weight: 750; }
+.intro-header .brand-mark { width: 38px; height: 38px; background: none; box-shadow: none; }
+.intro-header .brand-mark svg { width: 38px; height: 36px; }

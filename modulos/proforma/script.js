@@ -7,6 +7,11 @@
   const tabs = Array.from(document.querySelectorAll('[data-report]'));
   const money = value => C.fmt.money(value, company);
   const pct = value => C.fmt.pct(value);
+  const presentIssue = text => String(text).replace(/entre (-?\d+(?:\.\d+)?) y 1000000000000000/g, 'desde $1 hasta el límite de importes permitido');
+  const issueLabel = text => {
+    const rules = [[/fechas|período histórico|cierre histórico/i, 'fechas y período'], [/costo/i, 'costos'], [/gasto/i, 'gastos'], [/ventas/i, 'ventas'], [/inter[eé]s/i, 'intereses'], [/impuesto|fiscal/i, 'impuestos'], [/dividendo/i, 'dividendos'], [/balance/i, 'balance histórico o proforma']];
+    return rules.find(([pattern]) => pattern.test(text))?.[1] || 'otras premisas';
+  };
   const valueOf = path => path.split('.').reduce((obj, key) => obj?.[key], settings);
   const field = (label, path, type = 'number', extra = '') => `<label class="field"><span class="field-label">${esc(label)}</span><input class="input" data-setting="${esc(path)}" type="${type}" ${type === 'number' ? 'step="any"' : ''} value="${esc(valueOf(path) ?? '')}" ${extra}></label>`;
   const select = (label, path, options) => `<label class="field"><span class="field-label">${esc(label)}</span><select class="select" data-setting="${esc(path)}">${options.map(([v, text]) => `<option value="${esc(v)}"${valueOf(path) === v ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select></label>`;
@@ -90,6 +95,8 @@
   function renderResults() {
     const r = P.analyze(company, settings), t = r.income, b = r.balance;
     const incomeTab = $('tab-income').getAttribute('aria-selected') === 'true', ready = incomeTab ? t.ready : b.ready;
+    $('income-pending-message').hidden = t.ready;
+    $('balance-pending-message').hidden = b.ready;
     set('paper-company', company.name.toUpperCase()); set('paper-period', r.period);
     set('paper-currency', 'Cifras en ' + C.fmt.unit(company)); set('summary-currency', C.fmt.unit(company));
     set('paper-badge-status', `${company.sample ? 'EJEMPLO · ' : ''}${ready ? 'PROYECCIÓN HISTÓRICA' : 'DATOS PENDIENTES'}`);
@@ -104,7 +111,7 @@
     $('proforma-comparison-body').innerHTML = results.map(([key, label]) => `<tr${isTotal(key) ? ' class="statement-subtotal"' : ''}><th scope="row">${esc(label)}</th><td>${esc(money(r.comparison.sales[key]))}</td><td>${esc(money(r.comparison.mixed[key]))}</td></tr>`).join('');
     const calculations = t.rows.map(line => `<tr><th scope="row">${esc(line.label)}<small>${esc(line.formula)}</small></th><td>${esc(money(line.historical))}<small>${esc(pct(line.ratio))} de ventas</small></td><td>${esc(money(line.value))}${settings.method === 'mixed' && ['costSales', 'opex'].includes(line.category) ? `<small>Parte fija: ${esc(money(line.fixedValue))}</small>` : ''}</td></tr>`).join('');
     $('proforma-calculations').innerHTML = `<p>Ventas históricas: ${esc(money(r.history.values.sales))}. Tasa fiscal aplicada: ${esc(pct(t.taxRate))}. Impuesto = ${settings.taxLoss === 'credit' ? 'UAI' : 'máximo(UAI, 0)'} × tasa. ${settings.dividendMode === 'percent' ? 'Dividendos = máximo(utilidad neta, 0) × porcentaje indicado.' : 'Dividendos: importe total indicado.'}</p><div class="proforma-table-scroll"><table class="statement-table"><thead><tr><th>Cálculo por cuenta</th><th>Histórico</th><th>Proyectado</th></tr></thead><tbody>${calculations}</tbody></table></div>` +
-      (r.comparison.mixed.issues.length && settings.method !== 'mixed' ? `<p>Comparación fija / variable pendiente: ${esc(r.comparison.mixed.issues.join(' '))}</p>` : '');
+      (r.comparison.mixed.issues.length && settings.method !== 'mixed' ? `<details><summary>Comparación fija / variable pendiente</summary><ul>${[...new Set(r.comparison.mixed.issues)].map(text => `<li>${esc(presentIssue(text))}</li>`).join('')}</ul></details>` : '');
     $('balance-proforma-body').innerHTML = ['cash', 'receivables', 'inventory', 'otherCurrentAssets'].map(k => row(P.balanceFields[k], b.values[k])).join('') +
       row('Total activo corriente', b.currentAssets, true) + row('Activos fijos netos', b.values.fixed) + row('Otros activos no corrientes', b.values.otherNonCurrentAssets) + row('Total activos', b.assets, true) +
       ['payables', 'otherCurrentLiabilities', 'longDebt', 'otherNonCurrentLiabilities'].map(k => row(P.balanceFields[k], b.values[k])).join('') + row('Total pasivos', b.liabilities, true) +
@@ -121,7 +128,9 @@
     }
     set('proforma-leverage-note', (leverage.unavailable ? leverage.reason : [leverage.assumption, ...leverage.warnings].join(' ')) + (dirty ? ' Guarda la proyección para abrir estos datos en Apalancamiento.' : ''));
     const notices = [...new Set([...r.issues, ...t.issues, ...(incomeTab ? [] : b.issues)])];
-    $('proforma-pending').innerHTML = notices.length ? `<strong>Pendientes y alertas</strong><ul>${notices.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : '';
+    const labels = [...new Set(notices.map(issueLabel))];
+    const detailsOpen = !!$('proforma-pending').querySelector('details[open]');
+    $('proforma-pending').innerHTML = notices.length ? `<p><strong>Datos pendientes o por revisar:</strong> ${esc(labels.join(', '))}.</p><details${detailsOpen ? ' open' : ''}><summary>Ver detalle de pendientes y alertas (${notices.length})</summary><ul>${notices.map(text => `<li>${esc(presentIssue(text))}</li>`).join('')}</ul></details>` : '';
     set('paper-notes-text', `${company.sample ? 'CASO DE EJEMPLO. ' : ''}Base histórica ${company.periods[settings.historicalPeriod] || 'pendiente'}; ${settings.method === 'sales' ? 'porcentajes históricos sobre ventas proyectadas' : 'costos fijos y variables confirmados'}. Moneda y escala del histórico. Precisión completa en cálculos; presentación a dos decimales. Los datos faltantes se muestran como —. Las cuentas opcionales de otros ingresos ausentes no aportan al resultado. El mínimo de efectivo no es gasto. No se incluyen intereses sobre financiamiento externo todavía no contratado.`);
   }
   function handleInput(event) {

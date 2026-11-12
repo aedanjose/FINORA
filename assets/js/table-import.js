@@ -75,10 +75,10 @@
   }
   // Estos nombres con importes vacíos son encabezados, incluso si están en el catálogo.
   const balanceSection = n => /^(?:activos?|pasivos?)(?: (?:corrientes?|no corrientes?|circulantes?|no circulantes?|fijos|de corto plazo|de largo plazo))?$|^(?:patrimonio(?: de los accionistas)?|capital(?: contable)?|otros activos)$/.test(n);
-  const incomeHeader = n => /^(total|suma|subtotal)\b/.test(n) ? null : /gastos (operativos|de operacion)/.test(n) ? 'opex' : /gastos financieros|intereses/.test(n) ? 'interest' : /^costo|costos de/.test(n) ? 'costSales' : /^(ingresos|ventas)/.test(n) ? 'sales' : /impuestos/.test(n) ? 'taxes' : /dividendos/.test(n) ? 'preferred' : null;
+  const incomeHeader = n => /^(total|suma|subtotal)\b/.test(n) ? null : /gastos (operativos|de operacion)/.test(n) ? 'opex' : /gastos financieros|intereses/.test(n) ? 'interest' : /^costo|costos de/.test(n) ? 'costSales' : /^(ingresos|ventas)/.test(n) ? 'sales' : /impuestos/.test(n) ? 'taxes' : /dividendos.*preferent/.test(n) ? 'preferred' : null;
   function balanceTotalPart(n) {
     // La diferencia es un control del documento, nunca una cuenta del pasivo.
-    if (/^diferencia(?:\s*\(debe ser cero\)| (?:en|del) balance)$/.test(n)) return 'difference';
+    if (/^(?:diferencia|comprobacion)(?:\s*\(debe ser cero\)| (?:en|del) balance)$/.test(n)) return 'difference';
     n = n.replace(/^(total|suma|subtotal),\s*/, '$1 ');
     const isTotal = /^(total|suma|subtotal)\b/.test(n), rest = n.replace(/^(total de|total|suma de|suma|subtotal de|subtotal)\s+/, '');
     const head = balanceHeader(rest);
@@ -92,6 +92,8 @@
     return 'equity';
   }
   function incomeDerived(n) {
+    if (/^(incremento|aumento|variacion) (de |en )?(utilidades|ganancias) retenidas/.test(n)) return 'retainedChange';
+    if (/dividendos?/.test(n) && !/preferent/.test(n)) return /comun/.test(n) ? 'commonDividends' : 'unspecifiedDividends';
     if (/accionistas comunes|para los comunes|utilidad para comunes/.test(n)) return 'commonProfit';
     if (/utilidad por accion|ganancias? por accion|^upa\b/.test(n)) return 'eps';
     if (/antes de impuestos|^uai\b|\bneta ai\b/.test(n)) return 'ebt';
@@ -115,7 +117,7 @@
   const contextMeaning = (n, section) => { const m = MEANINGS.find(([re]) => re.test(n)); return m && section !== 'equity' ? m[section === 'asset' ? 1 : 2] : null; };
   // Rol sugerido por palabras clave cuando el nombre no está en el catálogo (siempre con aviso).
   const roleHints = [[/efectivo|caja|banco/, 'cash'], [/cuentas? (por|a) cobrar|clientes|deudores/, 'receivables'], [/inventario|mercader/, 'inventory'], [/cuentas? (por|a) pagar|proveedores/, 'payables'], [/prestamos?|hipoteca|bonos|deuda|obligaciones financieras/, 'longDebt'], [/terreno|edificio|maquinaria|equipo|mobiliario|vehiculo|planta/, 'fixed']];
-  const categoryHints = [[/tasa.*(impuesto|impositiv|fiscal)|tasa de isr/, 'taxRate'], [/ventas? a credito/, 'creditSales'], [/numero de acciones|acciones en circulacion|acciones comunes en circulacion/, 'shares'], [/costos? fijos/, 'fixedCosts'], [/compras? (reales )?a credito/, 'creditPurchases'], [/costo/, 'costSales'], [/gasto.*(venta|admin|general|arrend|deprec|operativ)|deprec|arrend/, 'opex'], [/interes|financier/, 'interest'], [/impuesto/, 'taxes'], [/dividendo/, 'preferred'], [/venta|ingreso/, 'sales']];
+  const categoryHints = [[/tasa.*(impuesto|impositiv|fiscal)|tasa de isr/, 'taxRate'], [/ventas? a credito/, 'creditSales'], [/numero de acciones|acciones en circulacion|acciones comunes en circulacion/, 'shares'], [/costos? fijos/, 'fixedCosts'], [/compras? (reales )?a credito/, 'creditPurchases'], [/costo/, 'costSales'], [/gasto.*(venta|admin|general|arrend|deprec|operativ)|deprec|arrend/, 'opex'], [/interes|financier/, 'interest'], [/impuesto/, 'taxes'], [/dividendo.*preferent/, 'preferred'], [/venta|ingreso/, 'sales']];
 
   // ── Análisis del texto ────────────────────────────────────────────────────────
   function analyze(text, options = {}) {
@@ -224,7 +226,7 @@
           if (minus && hit.category === 'sales' && hit.sign === 1) { row.sign = -1; addDoubt(row, 'warn', 'Precedida por «Menos:» dentro de ventas: se trató como deducción.'); }
         } else {
           const hint = categoryHints.find(([re]) => re.test(bn));
-          row.category = context.category ?? (hint ? hint[1] : null); row.sign = minus && row.category === 'sales' ? -1 : 1;
+          row.category = hint?.[1] === 'taxRate' ? 'taxRate' : context.category ?? (hint ? hint[1] : null); row.sign = minus && row.category === 'sales' ? -1 : 1;
           if (row.category) addDoubt(row, 'warn', context.category ? `Nombre fuera del catálogo: categoría tomada del encabezado. Confírmala.` : `Categoría sugerida por el nombre. Confírmala.`);
           else addDoubt(row, 'error', 'No pude clasificarla: elige su categoría.');
         }

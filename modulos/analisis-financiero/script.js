@@ -78,6 +78,7 @@
 
   function renderCharts(c, b, i) {
     const p = c.periods, ind = C.indicators(c, b, i);
+    if (ind.margins) { const academic=window.FinoraAcademicAnalysis.analyze(c,b,i); ind.margins.net=Object.fromEntries(SIDES.map(side=>[side,academic[side]?.profitability?.metrics?.netMargin?.value??null])); }
     if (!(b.hasPrevious && b.hasCurrent)) { $('panel-charts').innerHTML = panel('Gráficas e indicadores', '', empty('Faltan datos', 'Se necesitan los dos períodos del balance.')); return; }
     const wc = ind.workingCapital;
     const ppRow = (label, pair) => `<tr><td>${label}</td><td>${fmt.pct(pair.previous)}</td><td>${fmt.pct(pair.current)}</td><td colspan="2">${pair.previous !== null && pair.current !== null ? `<span class="${pair.current - pair.previous < 0 ? 'num-negative' : ''}">${fmt.pp(pair.current - pair.previous)}</span>` : '—'}</td></tr>`;
@@ -104,7 +105,7 @@
   function renderReading(c, b, i) {
     const items = C.interpret(c, b, i);
     $('panel-reading').innerHTML = panel('Interpretación del análisis vertical y horizontal', 'Redactada automáticamente con las cifras de la empresa; cambia si cambias las cuentas.',
-      items.length ? `<ol class="insight-list">${items.map(x => `<li><strong>${esc(x.topic)}</strong><p>${esc(x.text)}</p></li>`).join('')}</ol>` : empty('Faltan datos', 'La interpretación necesita el balance de los dos períodos.'));
+      items.length ? `<ol class="insight-list">${items.map(x => `<li><strong>${esc(x.topic)}</strong><p>${esc(x.text.replace(/margen neto/gi, 'margen sobre utilidad neta'))}</p></li>`).join('')}</ol>` : empty('Faltan datos', 'La interpretación necesita el balance de los dos períodos.'));
   }
   function renderAdvice(c, b, i) {
     const recs = C.recommend(c, b, i);
@@ -123,7 +124,7 @@
     return `${fmt.plain(m.value)} veces`;
   }
   function renderRatios(c, b, i) {
-    const r = C.ratios(c, b, i), p = c.periods;
+    const r = window.FinoraAcademicAnalysis.analyze(c, b, i), p = c.periods;
     const get = (side, path) => path.split('.').reduce((o, k) => o?.[k], r[side]);
     const groups = [
       ['Liquidez', [['Capital de trabajo neto', 'liquidity.workingCapital'], ['Razón circulante', 'liquidity.currentRatio'], ['Prueba ácida', 'liquidity.quickRatio']]],
@@ -137,19 +138,43 @@
       return `<tr class="row-group"><td colspan="4">${title}</td></tr>` + list.filter(([, path]) => !(i.empty && needsIncome(path))).map(([label, path]) => {
         const m = get('current', path) || get('previous', path);
         // Aquí se usan saldos al cierre: el texto del motor dice «promedio» cuando hay período anterior.
-        const formula = String(m?.formula || '').replace(/ promedio/g, ' al cierre');
+        const formula = String(m?.formula || '');
         return `<tr><td>${label}</td><td class="formula">${esc(formula)}</td><td>${metricText(get('previous', path), c)}</td><td>${metricText(get('current', path), c)}</td></tr>`;
       }).join('');
     }).join('');
-    const table = `<div class="table-scroll"><table class="account-table ratio-table"><thead><tr><th scope="col">Razón</th><th scope="col">Fórmula</th><th scope="col">${esc(p.previous)}</th><th scope="col">${esc(p.current)}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="table-footnote">Calculadas por el motor con los saldos al cierre de cada período${c.params?.allSalesCredit ? '; se supone que todas las ventas son a crédito' : ''}. Pasa el cursor sobre «—» para ver qué dato falta.</p>`;
+    const table = `<div class="table-scroll"><table class="account-table ratio-table"><thead><tr><th scope="col">Razón</th><th scope="col">Fórmula</th><th scope="col">${esc(p.previous)}</th><th scope="col">${esc(p.current)}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="table-footnote">La actividad del período actual usa el promedio de los dos balances y 365 días. El período anterior requiere un balance inicial adicional. Las compras estimadas y las ventas a crédito se informan abajo. Pasa el cursor sobre «—» para ver qué dato falta.</p>`;
     let dupont = empty('DuPont necesita el estado de resultados', 'Con ventas y utilidad neta se descompone el ROE en margen, rotación y multiplicador de capital.');
     const d = r.current?.profitability?.dupont;
     if (d && d.roe?.value !== null && d.roe?.value !== undefined) {
-      dupont = `<div class="panel-body"><div class="dupont-flow"><div class="dupont-factor"><span>Margen neto</span><strong>${fmt.pct(d.margin.value)}</strong><small>Utilidad neta / ventas</small></div><span class="math-symbol">×</span><div class="dupont-factor"><span>Rotación de activos</span><strong>${fmt.plain(d.turnover.value, 3)}</strong><small>Ventas / activos</small></div><span class="math-symbol">×</span><div class="dupont-factor"><span>Multiplicador de capital</span><strong>${fmt.plain(d.leverage.value, 3)}</strong><small>Activos / capital</small></div><span class="math-symbol">=</span><div class="dupont-result"><span>ROE ${esc(p.current)}</span><strong>${fmt.pct(d.roe.value)}</strong><small>Rendimiento del capital</small></div></div>
+      dupont = `<div class="panel-body"><div class="dupont-flow"><div class="dupont-factor"><span>Margen sobre utilidad neta</span><strong>${fmt.pct(d.margin.value)}</strong><small>Utilidad neta / ventas</small></div><span class="math-symbol">×</span><div class="dupont-factor"><span>Rotación de activos</span><strong>${fmt.plain(d.turnover.value, 3)}</strong><small>Ventas / activos</small></div><span class="math-symbol">×</span><div class="dupont-factor"><span>Multiplicador de capital</span><strong>${fmt.plain(d.leverage.value, 3)}</strong><small>Activos / capital</small></div><span class="math-symbol">=</span><div class="dupont-result"><span>ROE ${esc(p.current)}</span><strong>${fmt.pct(d.roe.value)}</strong><small>Rendimiento del capital</small></div></div>
         <p class="note">Cada ${esc(c.currency)} 100 de capital generó ${esc(c.currency)} ${fmt.plain(d.roe.value * 100)} de utilidad neta en ${esc(p.current)}. Se usan los saldos de activos y capital al cierre.</p></div>`;
     }
-    $('panel-ratios').innerHTML = panel('Razones financieras', `${esc(p.previous)} y ${esc(p.current)}`, table) + panel('Modelo DuPont', `Los tres motores del ROE · ${esc(p.current)}`, dupont);
+    $('panel-ratios').innerHTML = panel('Razones financieras', `${esc(p.previous)} y ${esc(p.current)}`, table) + renderCCE(c,r) + renderRetained(c,i) + panel('Modelo DuPont', `Los tres motores del ROE · ${esc(p.current)}`, dupont);
   }
+
+  function renderRetained(c,i){
+    const r=window.FinoraAcademicAnalysis.retained(c,i),fmtMoney=value=>Number.isFinite(value)?fmt.money(value,c):'Pendiente';
+    if([r.prior,r.current,r.reported,r.paid].every(value=>value===null))return '';
+    const agrees=Number.isFinite(r.change)&&Number.isFinite(r.fromIncome)?Math.abs(r.change-r.fromIncome)<.01:null;
+    return panel('Cambios en utilidades retenidas','Comprobación entre balances y resultados',`<div class="panel-body"><p>Saldo inicial: ${esc(fmtMoney(r.prior))} · Saldo final: ${esc(fmtMoney(r.current))} · Cambio entre balances: <strong>${esc(fmtMoney(r.change))}</strong></p><p>Dividendos totales informados: ${esc(fmtMoney(r.paid))} · Utilidad neta menos dividendos: ${esc(fmtMoney(r.fromIncome))} · Incremento reportado: ${esc(fmtMoney(r.reported))}</p><p>${agrees===null?'Faltan datos para comprobar el cambio; no se asume que los dividendos no especificados sean preferentes.':agrees?'El cambio coincide con la utilidad neta menos los dividendos informados.':'El cambio no coincide; revisa aportes, ajustes u otros movimientos patrimoniales.'}</p></div>`);
+  }
+  function renderCCE(c,r) {
+    const cfg=c.params?.academicAnalysis?.current||{}, a=r.current?.activity, m=a?.metrics||{}, days=[['Inventario',m.inventoryDays],['Cobro',m.collectionDays],['Pago',m.paymentDays]];
+    const valid=Number.isFinite(a?.cce), max=Math.max(1,...days.map(([,v])=>Number.isFinite(v?.value)?v.value:0));
+    const bars=days.map(([label,value],index)=>{const v=value?.value;return `<div class="cce-line"><span>${esc(label)}</span><div class="cce-track"><span class="cce-bar cce-bar-${index}" style="width:${Number.isFinite(v)?Math.max(0,Math.min(100,v/max*100)):0}%"></span></div><strong>${Number.isFinite(v)?esc(fmt.plain(v,2))+' días':'Pendiente'}</strong></div>`;}).join('');
+    const interpretation=valid?(a.cce>0?'La empresa necesita financiar el ciclo durante '+fmt.plain(a.cce,2)+' días.':a.cce<0?'La empresa cobra antes de pagar; el ciclo es negativo en '+fmt.plain(Math.abs(a.cce),2)+' días.':'El ciclo de conversión de efectivo es cero.'):'Completa las ventas a crédito y las compras a crédito, además de los saldos iniciales y finales necesarios.';
+    const prior=Number.isFinite(r.previous?.activity?.cce)?`Variación: ${fmt.plain(Math.abs(a.cce-r.previous.activity.cce),2)} días.`:'No se puede comparar con el período anterior sin su balance inicial.';
+    const body=`<div class="panel-body"><p>Base: 365 días. El período ${esc(c.periods.current)} usa los saldos promedio de ${esc(c.periods.previous)} y ${esc(c.periods.current)}.</p><form id="cce-premises" class="form-grid"><label class="field"><span class="field-label">Ventas a crédito del período (vacío: usar dato del estado)</span><input class="input" type="number" min="0" step="any" name="creditSales" value="${esc(cfg.creditSales??'')}"></label><label class="field"><span class="field-label">Compras a crédito estimadas (% del costo; vacío: usar dato del estado)</span><input class="input" type="number" min="0" max="100" step="any" name="purchaseRate" value="${esc(cfg.purchaseRate??'')}"></label><button class="button button-primary" type="submit">Guardar premisas</button><p id="cce-error" role="alert"></p></form><p class="note">${esc(a?.creditSource||'Ventas a crédito pendientes')} · ${esc(a?.purchaseSource||'Compras a crédito pendientes')}. Las premisas son independientes de otros módulos.</p><figure class="cce-chart" aria-label="Días de inventario, cobro y pago"><figcaption>Duración de cada período</figcaption>${bars}</figure><p><strong>CCE = inventario + cobro − pago: ${valid?(a.cce<0?'−':'')+esc(fmt.plain(a.cce,2))+' días':'pendiente'}</strong></p><p>${esc(interpretation)} ${valid?esc(prior):''}</p></div>`;
+    return panel('Ciclo de Conversión de Efectivo','Seguimiento de inventario, cobro y pago',body);
+  }
+  $('panel-ratios').addEventListener('submit',event=>{
+    if(event.target.id!=='cce-premises')return;event.preventDefault();const form=event.target,err=form.querySelector('#cce-error');
+    const read=name=>form.elements[name].value.trim()===''?null:Number(form.elements[name].value);
+    const creditSales=read('creditSales'),purchaseRate=read('purchaseRate'),c=C.store.active(),income=C.analyzeIncome(c).statements.current;
+    if((creditSales!==null&&(!Number.isFinite(creditSales)||creditSales<0||(Number.isFinite(income?.sales)&&creditSales>income.sales)))||(purchaseRate!==null&&(!Number.isFinite(purchaseRate)||purchaseRate<0||purchaseRate>100))){err.textContent='Revisa las ventas a crédito (no pueden superar las ventas totales) y el porcentaje de compras (0 a 100).';return;}
+    c.params||={};c.params.academicAnalysis||={};c.params.academicAnalysis.current={creditSales,purchaseRate};
+    const saved=C.store.save(c);if(!saved)window.Finora.toast('No se pudo guardar; las premisas solo permanecen en memoria.');else window.Finora.toast('Premisas guardadas.');
+  });
 
   // ---------- Comprobaciones ----------
   function renderChecks(c, b, i) {
@@ -173,7 +198,7 @@
     let last;
     if (!i.empty && i.statements.current) {
       const net = { previous: i.statements.previous?.netProfit ?? null, current: i.statements.current.netProfit };
-      last = card('Utilidad neta', 'trend', money(net.current), ind.margins ? `Margen neto ${fmt.pct(ind.margins.net.current)} · ${trend(safe(net), `vs. ${esc(p.previous)}`)}` : '');
+      last = card('Utilidad neta', 'trend', money(net.current), ind.margins ? `Margen sobre utilidad neta ${fmt.pct(ind.margins.net.current)} · ${trend(safe(net), `vs. ${esc(p.previous)}`)}` : '');
     } else last = card('Total capital', 'scale', money(b.totals.equity.current), trend(safe(b.totals.equity), `vs. ${esc(p.previous)}`));
     $('analysis-stats').innerHTML = card(`Total activos ${esc(p.current)}`, 'grid', money(b.totals.assets.current), trend(safe(b.totals.assets), `vs. ${esc(p.previous)}`))
       + card('Capital de trabajo neto', 'wallet', money(ind.workingCapital.values.current), trend(ind.workingCapital, `vs. ${esc(p.previous)}`))

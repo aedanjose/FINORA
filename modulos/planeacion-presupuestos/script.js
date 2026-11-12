@@ -25,7 +25,7 @@
   function load(){
     cache();model=C.store.active();if(localCompany!==model.id){localDrafts.clear();localCompany=model.id;}const pending=drafts.get(model.id);
     draft=pending?.draft||B.upgrade(model,model.params?.budget);snapshot=pending?.snapshot||JSON.stringify(model);dirty=!!pending;stage=pending?.stage??stage;
-    notice.textContent=model.sample?'Empresa de ejemplo seleccionada. Crea tu empresa en Estados financieros para trabajar con datos reales.':'';
+    notice.textContent=model.sample?'Empresa de ejemplo seleccionada. Elige «＋ Nueva empresa…» en el selector para crear la tuya y comenzar un presupuesto.':'';
     if(draft.context!==B.context(model))notice.textContent+=' La proyección pertenece a otra moneda, escala o años. Se conserva; crea una nueva o una copia revisada para este contexto.';
     render();
   }
@@ -211,6 +211,35 @@
     }catch(err){if(!closed&&ticket===generation){error.textContent=err.message;options.innerHTML='';}}};
   }
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-  window.FinoraCaseBar.mount(document.getElementById('case-bar'));
+  function createCompany(){
+    const modal=window.Finora.openDialog('Nueva empresa',`<form id="budget-company-form">
+      <label class="field"><span class="field-label">Nombre de la empresa</span><input class="input" name="companyName" required maxlength="80" placeholder="Ej. Comercial El Roble" aria-describedby="budget-company-error"></label>
+      <p class="note">Comienza tu presupuesto manualmente, sin importar archivos ni registrar estados financieros. La empresa se crea en C$ (unidades); puedes cambiar la moneda en la barra superior.</p>
+      <p class="budget-error" id="budget-company-error" role="alert"></p>
+      <div class="budget-actions"><button class="button button-primary" type="submit">Crear empresa</button><button class="button button-secondary" type="button" id="budget-company-cancel">Cancelar</button></div>
+    </form>`);
+    const form=modal.querySelector('form'),nameInput=form.elements.companyName,error=form.querySelector('#budget-company-error');
+    const normalize=name=>name.trim().replace(/\s+/g,' ').normalize('NFC').toLocaleLowerCase('es');
+    let created=false;
+    nameInput.focus();
+    nameInput.addEventListener('input',()=>{nameInput.removeAttribute('aria-invalid');error.textContent='';});
+    form.querySelector('#budget-company-cancel').addEventListener('click',()=>modal.close());
+    modal.addEventListener('close',()=>document.getElementById('case-select')?.focus(),{once:true});
+    form.addEventListener('submit',event=>{
+      event.preventDefault();if(created)return;
+      const name=nameInput.value.trim().replace(/\s+/g,' ');
+      const invalid=!name||name.length>80?'Escribe un nombre de empresa de 1 a 80 caracteres.':C.store.list().some(c=>normalize(c.name)===normalize(name))?'Ya existe una empresa con ese nombre. Selecciónala en el listado o utiliza un nombre diferente.':'';
+      if(invalid){error.textContent=invalid;nameInput.setAttribute('aria-invalid','true');nameInput.focus();return;}
+      try{
+        const company=C.blankCase(name);
+        company.balance=[];company.income=[];company.reported={};
+        company.periods={previous:'Anterior',current:'Actual'};company.statementDate='';
+        created=true;const persisted=C.store.add(company);stage=0;render();modal.close();
+        notice.textContent=persisted?'Empresa creada y guardada. Configura el período y completa las etapas del presupuesto.':'Empresa creada solo en memoria: el navegador no permitió guardarla. No se conservará al cerrar o recargar.';
+        window.Finora.toast(notice.textContent);
+      }catch(err){created=false;error.textContent='No se pudo completar la creación: '+err.message;}
+    });
+  }
+  window.FinoraCaseBar.mount(document.getElementById('case-bar'),{onCreate:createCompany});
   C.store.subscribe(()=>{if(saving)return;if(model&&C.store.active().id===model.id&&dirty){notice.textContent='La empresa cambió en otra vista. Se conservan tus cambios locales; recarga antes de guardar.';return;}load();});load();
 })();

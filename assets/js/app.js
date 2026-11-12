@@ -44,7 +44,7 @@
     { id: 'apalancamiento', label: 'Apalancamiento', icon: 'layers' },
     { id: 'flujo-efectivo', label: 'Flujo de efectivo', icon: 'wallet' },
     { id: 'planeacion-presupuestos', label: 'Planeación y presupuestos', icon: 'calendar' },
-    { id: 'proforma', label: 'Proforma / reporte integrado', icon: 'file' },
+    { id: 'proforma', label: 'Estados Proforma', icon: 'file' },
     { id: 'presupuesto-personal', label: 'Presupuesto personal', icon: 'user' },
     { id: 'levantamiento-activos', label: 'Levantamiento de activos', icon: 'box' },
     { id: 'inventario', label: 'Control básico de inventario', icon: 'box' }
@@ -54,7 +54,12 @@
   const moduleLink = item => `${base}modulos/${item.id}/index.html`;
   const navItem = item => `<a class="nav-item${item.id === current.id ? ' active' : ''}" href="${moduleLink(item)}"${item.id === current.id ? ' aria-current="page"' : ''}>${icon(item.icon)}<span>${item.label}</span>${item.id === current.id ? '<span class="nav-active-dot"></span>' : ''}</a>`;
   const sidebar = document.getElementById('sidebar');
-  sidebar.innerHTML = `<a class="brand" href="${base}index.html" aria-label="Finora, inicio"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h14M5 12h10" stroke="white" stroke-width="2.8" stroke-linecap="round"/><path d="m14 19 5-5" stroke="#94BCFF" stroke-width="2.8" stroke-linecap="round"/></svg></span><span class="brand-name">finora<span class="brand-dot">.</span></span></a><div class="brand-caption">CLARIDAD PARA DECIDIR</div><div class="nav-label">Gestión financiera</div><nav class="nav-list" aria-label="Módulos financieros">${modules.slice(0, 8).map(navItem).join('')}</nav><div class="nav-divider"></div><div class="nav-label">Complementarios</div><nav class="nav-list" aria-label="Módulos complementarios">${modules.slice(8).map(navItem).join('')}</nav><div class="sidebar-bottom"><div class="workspace-card"><div class="workspace-card-title">${icon('spark')}Tu espacio de aprendizaje</div><p>De los datos a las decisiones,<br>un módulo a la vez.</p><button type="button" id="about-project">Conocer el proyecto ${icon('arrow-right')}</button></div><div class="sidebar-profile"><span class="avatar">M</span><div><div class="profile-name">Martina</div><div class="profile-role">Perfil de demostración</div></div><button class="profile-more" type="button" id="profile-info" aria-label="Información del perfil">${icon('more')}</button></div></div>`;
+  const navGroups = [
+    ['Finanzas empresariales', modules.slice(1, 8)],
+    ['Finanzas personales', modules.filter(item => item.id === 'presupuesto-personal')],
+    ['Control patrimonial', modules.filter(item => ['levantamiento-activos', 'inventario'].includes(item.id))]
+  ];
+  sidebar.innerHTML = `<a class="brand" href="${base}index.html" aria-label="Finora, inicio"><span class="brand-mark"><svg viewBox="0 0 40 36" fill="none" aria-hidden="true"><rect x="2" y="23" width="9" height="11" rx="2" fill="#168bff"/><rect x="15" y="13" width="9" height="21" rx="2" fill="#62b7ff"/><rect x="28" y="2" width="9" height="32" rx="2" fill="#1677f8"/></svg></span><span class="brand-name">FINORA</span></a><div class="brand-caption">Análisis y Planeación Financiera</div><nav class="nav-list nav-overview" aria-label="Resumen general">${navItem(modules[0])}</nav>${navGroups.map(([label, items])=>`<div class="nav-divider"></div><div class="nav-label">${label}</div><nav class="nav-list" aria-label="${label}">${items.map(navItem).join('')}</nav>`).join('')}<div class="sidebar-bottom"><div class="workspace-card"><div class="workspace-card-title">${icon('spark')}Tu espacio de aprendizaje</div><p>De los datos a las decisiones,<br>un módulo a la vez.</p><button type="button" id="about-project">Conocer el proyecto ${icon('arrow-right')}</button><button type="button" id="backup-open">Respaldo de datos ${icon('arrow-right')}</button></div><div class="sidebar-profile"><span class="avatar">M</span><div><div class="profile-name">Martina</div><div class="profile-role">Perfil de demostración</div></div><button class="profile-more" type="button" id="profile-info" aria-label="Información del perfil">${icon('more')}</button></div></div>`;
   document.getElementById('topbar').innerHTML = `<button class="icon-button menu-toggle" type="button" aria-label="Abrir menú de navegación" aria-controls="sidebar" aria-expanded="false">${icon('menu')}</button><div class="breadcrumb"><span class="breadcrumb-root">Mi espacio</span><span class="breadcrumb-root">${icon('chevron-right')}</span><span class="breadcrumb-current">${current.short || current.label}</span></div><div class="topbar-actions"><button class="topbar-currency-btn" type="button" id="topbar-currency" title="Cambiar moneda de trabajo" aria-label="Cambiar moneda de trabajo"><span class="currency-tag">Moneda</span><strong id="topbar-currency-val">C$</strong>${icon('chevron-down')}</button><button class="global-search" type="button" id="open-search" aria-label="Buscar módulo">${icon('search')}<span>Buscar un módulo...</span><kbd>Ctrl K</kbd></button><span class="topbar-separator"></span><button class="icon-button notification-button" type="button" id="project-status" aria-label="Estado del proyecto">${icon('bell')}</button><button class="avatar top-avatar" type="button" id="top-profile" aria-label="Perfil de demostración Martina">M</button></div>`;
   const hydrateIcons = (parent = document) => parent.querySelectorAll('[data-icon]').forEach(item => { item.innerHTML = icon(item.dataset.icon); item.setAttribute('aria-hidden', 'true'); });
   let toastTimer;
@@ -148,6 +153,56 @@
   }
   dialog.addEventListener('click', event => { if (event.target === dialog) { const box = dialog.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close(); } });
   dialog.addEventListener('close', () => returnFocus?.focus());
+  const backupLibraries = [['FinoraPersonal', 'personal-budget.js'], ['FinoraAssets', 'fixed-assets.js'], ['FinoraBackup', 'backup.js']];
+  async function loadBackup() {
+    for (const [global, file] of backupLibraries) {
+      if (window[global]) continue;
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script'); script.src = `${base}assets/js/${file}`;
+        script.onload = resolve; script.onerror = () => { script.remove(); reject(new Error('No se pudo cargar el módulo de respaldo.')); };
+        document.head.append(script);
+      });
+    }
+    return window.FinoraBackup;
+  }
+  document.getElementById('backup-open').addEventListener('click', async () => {
+    const modal = openDialog('Respaldo de datos', `<p>Exporta una copia local de empresas, proyecciones, presupuesto personal, activos y preferencias.</p><button class="button button-secondary" type="button" id="backup-export">Exportar respaldo</button><hr><label class="field"><span class="field-label">Seleccionar respaldo JSON</span><input class="input" type="file" id="backup-file" accept=".json,application/json"></label><p class="note">Importar reemplaza los datos y preferencias actuales. Las secciones ausentes del respaldo se eliminarán de este navegador. Guarda primero los cambios pendientes en todas las pestañas.</p><p id="backup-status" role="status" aria-live="polite"></p><button class="button button-primary" type="button" id="backup-confirm" disabled>Confirmar y reemplazar datos</button>`);
+    const status=modal.querySelector('#backup-status'),file=modal.querySelector('#backup-file'),confirm=modal.querySelector('#backup-confirm');
+    let library, reviewed=null, original=null, generation=0;
+    try { library=await loadBackup(); } catch(error) { status.textContent=error.message;return; }
+    if(!modal.open || modal.querySelector('#backup-file')!==file)return;
+    modal.querySelector('#backup-export').addEventListener('click', () => {
+      try {
+        const text=library.exportData(localStorage), url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download='finora-respaldo-'+new Date().toISOString().slice(0,10)+'.json';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Respaldo exportado. Guárdalo en un lugar seguro.';
+      } catch(error) { status.textContent=error.message; }
+    });
+    file.addEventListener('change', async () => {
+      const ticket=++generation;reviewed=null;original=null;confirm.disabled=true;status.textContent='';
+      const selected=file.files[0];if(!selected)return;
+      try {
+        if(selected.size>25*1024*1024)throw Error('El archivo supera 25 MB.');
+        const data=library.parse(await selected.text());if(ticket!==generation || !modal.open || modal.querySelector('#backup-file')!==file)return;
+        original=library.snapshot(localStorage);reviewed=data;
+        const names={'finora:casos:v1':'empresas y proyecciones','finora:personal-budget:v1':'presupuesto personal','finora:fixed-assets:v1':'activos','finora:presentation:v1':'modo visual','finora:global_currency':'moneda'};
+        const included=library.KEYS.filter(key=>data[key]!==null).map(key=>names[key]);
+        const removed=library.KEYS.filter(key=>data[key]===null&&original[key]!==null).map(key=>names[key]);
+        status.textContent='Respaldo válido. Incluye: '+included.join(', ')+'.'+(removed.length?' Se eliminarán los datos actuales de: '+removed.join(', ')+'.':'')+' Confirma para reemplazar los datos actuales.';
+        confirm.disabled=false;
+      } catch(error) { if(ticket===generation)status.textContent=error.message; }
+    });
+    confirm.addEventListener('click', () => {
+      if(!reviewed)return;
+      try {
+        library.restore(localStorage,reviewed,original);reviewed=null;confirm.disabled=true;
+        try { sessionStorage.setItem('finora:backup-restored','1'); } catch (_) {}
+        window.dispatchEvent(new StorageEvent('storage',{key:null}));
+        status.textContent='Respaldo importado. Recargando los datos…';location.reload();
+      } catch(error) { reviewed=null;confirm.disabled=true;file.value='';status.textContent=error.message; }
+    });
+  });
+  try { if(sessionStorage.getItem('finora:backup-restored')==='1'){sessionStorage.removeItem('finora:backup-restored');toast('Respaldo importado correctamente.');} } catch (_) {}
   const profile = () => openDialog('Un perfil para explorar', '<p><strong>Martina</strong> es el perfil ficticio que acompaña al diseño original de Finora.</p><p class="note">Esta primera etapa es un prototipo visual. La autenticación, las cuentas y la conservación de datos se incorporarán en etapas posteriores.</p>');
   document.getElementById('profile-info').addEventListener('click', profile);
   document.getElementById('top-profile').addEventListener('click', profile);

@@ -4,11 +4,13 @@
 
   const storageKey = 'finora:presentation:v1';
   const root = document.documentElement;
-  let enabled = true;
+  const defaultEnabled = root.dataset.defaultPresentation !== 'off';
+  let enabled = defaultEnabled;
   let toggle;
 
   try {
-    enabled = localStorage.getItem(storageKey) !== 'off';
+    const saved = localStorage.getItem(storageKey);
+    enabled = saved === null ? defaultEnabled : saved !== 'off';
   } catch (_) {
     // El modo sigue disponible cuando el navegador bloquea el almacenamiento.
   }
@@ -49,7 +51,7 @@
 
   window.addEventListener('storage', event => {
     if (event.key !== storageKey && event.key !== null) return;
-    applyPreference(event.key === storageKey ? event.newValue !== 'off' : true);
+    applyPreference(event.key === storageKey && event.newValue !== null ? event.newValue !== 'off' : defaultEnabled);
   });
 
   if (document.readyState === 'loading') {

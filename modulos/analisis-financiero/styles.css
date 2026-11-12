@@ -105,3 +105,5 @@
   html[data-presentation="on"] .analysis-tabs { gap: 6px 18px; }
   html[data-presentation="on"] .analysis-tabs .tab-button { padding-left: 2px; padding-right: 2px; font-size: 14px; }
 }
+/* Ciclo de efectivo: barras informativas y datos editables del período. */
+.cce-chart{display:grid;gap:14px;margin:24px 0}.cce-chart figcaption{font-weight:650;color:var(--ink)}.cce-line{display:grid;grid-template-columns:95px minmax(0,1fr) 110px;gap:12px;align-items:center;font-size:13px}.cce-line strong{text-align:right;font-variant-numeric:tabular-nums}.cce-track{height:12px;border-radius:999px;background:var(--surface-soft);overflow:hidden}.cce-bar{display:block;height:100%;border-radius:999px;background:#176bd4}.cce-bar-1{background:#15975b}.cce-bar-2{background:#dc7b15}#cce-error{color:var(--red);line-height:1.6}#cce-error:empty{display:none}@media(max-width:600px){.cce-line{grid-template-columns:74px minmax(0,1fr) 85px;gap:8px;font-size:12px}}

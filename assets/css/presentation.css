@@ -260,3 +260,32 @@
   html[data-presentation="on"] :is(.input, .select):focus { border-color: var(--blue); box-shadow: var(--ring); }
   html[data-presentation="on"] .brand-mark { background: linear-gradient(145deg, #4a7ff0, #2f5fd0); }
 }
+
+/* Etapa 1: identidad y navegación compartidas; no cambia componentes de los módulos. */
+@media screen {
+  html[data-presentation] .sidebar { background:linear-gradient(165deg,#0a203e,#07172f 75%); border-right:1px solid #183253; padding:26px 16px 18px; }
+  html[data-presentation] .brand { gap:11px; padding:0 12px; }
+  html[data-presentation] .brand-mark { width:38px; height:38px; background:none; box-shadow:none; border-radius:0; }
+  html[data-presentation] .brand-mark svg { width:38px; height:36px; }
+  html[data-presentation] .brand-name { font-size:27px; font-weight:750; letter-spacing:.025em; }
+  html[data-presentation] .brand-caption { text-transform:none; letter-spacing:0; color:#bdd5ef; font-size:11.5px; font-weight:500; padding:9px 12px 28px; white-space:nowrap; }
+  html[data-presentation] .nav-overview { margin-bottom:5px; }
+  html[data-presentation] .nav-label { text-transform:none; letter-spacing:0; font-size:12px; color:#bdd5ef; margin:12px 0 8px; font-weight:650; }
+  html[data-presentation] .nav-item { font-size:13px; color:#e0eafa; min-height:42px; padding:10px 11px; gap:10px; line-height:1.4; border-radius:9px; }
+  html[data-presentation] .nav-item .icon { color:#b8d6fb; opacity:1; width:20px; height:20px; }
+  html[data-presentation] .nav-item.active { background:#1462c1; color:#fff; box-shadow:inset 0 0 0 1px #3184df,0 4px 12px #0002; }
+  html[data-presentation] .nav-item.active .icon { color:#fff; }
+  html[data-presentation] .nav-item:hover { background:#183b64; color:#fff; }
+  html[data-presentation] .nav-item.active:hover { background:#176bcb; }
+  html[data-presentation] .nav-active-dot { background:#bbdcff; box-shadow:none; width:5px; height:5px; }
+  html[data-presentation] .nav-divider { background:#294465; margin:14px 12px 0; }
+  html[data-presentation] .nav-overview+.nav-divider { display:none; }
+  html[data-presentation] .workspace-card { background:#102848; border-color:#2a4261; padding:13px; }
+  html[data-presentation] .workspace-card-title { color:#e8f2ff; font-size:12px; }
+  html[data-presentation] .workspace-card p { color:#b4c9e3; font-size:11px; }
+  html[data-presentation] .workspace-card button { color:#a9d0ff; font-size:11.5px; }
+  html[data-presentation] .sidebar-profile { padding-top:16px; }
+  html[data-presentation] .profile-name { color:#edf4ff; }
+  html[data-presentation] .profile-role { color:#a9c1df; }
+  html[data-presentation] .sidebar :focus-visible { outline-color:#a9d0ff; outline-offset:3px; }
+}

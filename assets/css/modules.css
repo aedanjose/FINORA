@@ -1,0 +1,185 @@
+/* Etapa 2 · Presentación compartida. Los motores y los estados de los controles no cambian. */
+@media screen {
+  html[data-presentation] {
+    --module-radius: 17px;
+    --module-accent: #176bd4;
+    --module-heading: #edf4ff;
+    --module-table-head: #eef4fc;
+    --module-green: #ecf8f3;
+    --module-blue: #edf4ff;
+    --module-rose: #fff2f3;
+    --module-violet: #f3f0ff;
+  }
+  html[data-presentation="off"] {
+    --bg: #f6f8fd;
+    --border: #dce5f2;
+    --blue: #176bd4;
+    --blue-hover: #1159b6;
+    --blue-soft: #edf4ff;
+    --shadow-sm: 0 4px 18px rgb(30 65 115 / .045);
+  }
+  html[data-presentation="on"] {
+    --module-accent: #91bdff;
+    --module-heading: #253950;
+    --module-table-head: #2a3e56;
+    --module-green: #203b38;
+    --module-blue: #253b55;
+    --module-rose: #3c2f40;
+    --module-violet: #32344c;
+  }
+
+  /* Encabezados, tarjetas y navegación local. */
+  html[data-presentation] .main-content { padding-top: 26px; }
+  html[data-presentation] .page-heading {
+    align-items: center; padding: 24px 26px; border: 1px solid var(--border);
+    border-radius: var(--module-radius); background: linear-gradient(110deg, var(--module-heading), var(--surface));
+  }
+  html[data-presentation] .page-heading > div:first-child { min-width: 0; }
+  html[data-presentation] .page-title { font-size: clamp(25px, 2.3vw, 32px); line-height: 1.2; letter-spacing: -.035em; }
+  html[data-presentation] .page-description { font-size: 14px; line-height: 1.65; max-width: 76ch; }
+  html[data-presentation] .eyebrow { font-size: 11px; letter-spacing: .1em; }
+  html[data-presentation] :is(.panel, .stat-card, .report-preview) { border-radius: var(--module-radius); border-color: var(--border); box-shadow: var(--shadow-sm); }
+  html[data-presentation] .panel-header { padding-bottom: 16px; flex-wrap: wrap; }
+  html[data-presentation] .panel-title { font-size: 18px; line-height: 1.4; font-weight: 700; }
+  html[data-presentation] .panel-subtitle { font-size: 13px; line-height: 1.6; }
+  html[data-presentation] .stat-card { background: var(--module-green); }
+  html[data-presentation] .stat-card:nth-child(4n+2) { background: var(--module-blue); }
+  html[data-presentation] .stat-card:nth-child(4n+3) { background: var(--module-rose); }
+  html[data-presentation] .stat-card:nth-child(4n) { background: var(--module-violet); }
+  html[data-presentation] .stat-card :is(.stat-label, .stat-caption, .stat-currency) { color: var(--muted); }
+  html[data-presentation] .stat-card .stat-value { color: var(--ink); font-size: clamp(23px, 2vw, 29px); white-space: normal; overflow-wrap: anywhere; }
+  html[data-presentation] .stat-card .mini-icon { background: var(--surface); color: var(--module-accent); }
+  html[data-presentation] .stat-card.dark .trend-positive { color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent); }
+  html[data-presentation] .case-bar { padding: 20px 22px; }
+  html[data-presentation] .case-meta { line-height: 1.5; }
+  html[data-presentation] :is(.segmented-control, .analysis-tabs) { max-width: 100%; overflow-x: auto; }
+  html[data-presentation] .segmented-control { background: var(--surface-soft); border-radius: 12px; }
+  html[data-presentation] :is(.tab-button, .source-button) { min-height: 36px; }
+  html[data-presentation] :is(.tab-button, .source-button)[aria-selected="true"],
+  html[data-presentation] .source-button.active { color: var(--module-accent); background: var(--surface); }
+
+  /* Formularios y acciones: mismo foco, tamaño y contraste en todos los módulos. */
+  html[data-presentation] .button { min-height: 42px; border-radius: 10px; font-size: 13px; }
+  html[data-presentation] .button-small { min-height: 34px; font-size: 12px; }
+  html[data-presentation] :is(.input, .select, .cell-input, .cell-select, .import-source) {
+    border-radius: 9px; border-color: var(--border-strong); background: var(--surface); color: var(--ink);
+  }
+  html[data-presentation] :is(.input, .select) { min-height: 42px; font-size: 14px; max-width: 100%; }
+  html[data-presentation] :is(.cell-input, .cell-select) { min-height: 34px; }
+  html[data-presentation] .field-label { font-size: 13px; color: var(--ink-2); }
+  html[data-presentation] :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--module-accent); }
+  html[data-presentation] :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--module-accent); outline-offset: 3px; }
+  html[data-presentation] :is(.input, .select, .cell-input, .cell-select)[aria-invalid="true"],
+  html[data-presentation] .cell-input:is(.invalid, .over) { border-color: var(--red); }
+  html[data-presentation] button:disabled { cursor: not-allowed; }
+  html[data-presentation] .button:disabled { opacity: .55; box-shadow: none; }
+  html[data-presentation] :is(.budget-grid, .proforma-field-grid, .form-grid) > * { min-width: 0; }
+
+  /* Tablas: se conservan alineaciones, signos y jerarquía de totales del motor. */
+  html[data-presentation] :is(.table-wrap, .table-scroll, .budget-scroll, .proforma-table-scroll, .import-table-scroll) { max-width: 100%; overscroll-behavior-x: contain; }
+  html[data-presentation] :is(.data-table, .account-table, .budget-input-table, .import-table) { font-size: 13px; font-variant-numeric: tabular-nums; }
+  html[data-presentation] :is(.data-table, .account-table, .budget-input-table, .import-table) thead th {
+    background: var(--module-table-head); color: var(--ink-2); font-size: 12px;
+    font-weight: 650; line-height: 1.5; letter-spacing: .02em; text-transform: none;
+  }
+  html[data-presentation] .data-table td { padding-top: 14px; padding-bottom: 14px; }
+  html[data-presentation] .data-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--module-heading) 28%, var(--surface)); }
+  html[data-presentation] .data-table tbody tr:hover { background: color-mix(in srgb, var(--module-accent) 8%, var(--surface)); }
+  html[data-presentation] .account-table .row-account:hover td { background: color-mix(in srgb, var(--module-accent) 8%, var(--surface)); }
+  html[data-presentation] :is(.mini-button, .ledger-fold) { border-radius: 7px; }
+  html[data-presentation] .mini-button { min-height: 32px; font-size: 12px; }
+  html[data-presentation] .data-table .button { font-size: 12px; }
+  html[data-presentation] :is(.table-footnote, .movements-footer, .inventory-table-footer, .cash-table-footer) { font-size: 12px; line-height: 1.7; background: var(--surface-soft); }
+
+  /* Avisos y estados vacíos mantienen su significado y sus condiciones originales. */
+  html[data-presentation] :is(.note, .budget-status, .status-chip, .personal-error, .assets-error, .import-period-conflict) { border-radius: 11px; }
+  html[data-presentation] :is(.personal-error, .assets-error, .budget-status) { background: color-mix(in srgb, var(--amber) 7%, var(--surface)); }
+  html[data-presentation] .budget-status[data-state="ready"] { background: color-mix(in srgb, var(--green) 7%, var(--surface)); }
+  html[data-presentation] .status-chip.ok { background: color-mix(in srgb, var(--green) 7%, var(--surface)); }
+  html[data-presentation] .status-chip.bad { background: color-mix(in srgb, var(--red) 7%, var(--surface)); }
+  html[data-presentation] :is(.empty-panel, .empty-state, .personal-empty, .assets-empty) { padding: 36px 22px; background: var(--surface-soft); line-height: 1.7; }
+  html[data-presentation] :is(.personal-notices, .assets-notices) { font-size: 13px; line-height: 1.8; }
+  html[data-presentation] :is(.personal-error, .assets-error, .budget-error):empty { padding: 0; margin: 0; border: 0; }
+  html[data-presentation] .note:empty { padding: 0; margin: 0; border: 0; }
+
+  /* Importación: archivos, datos reconocidos, revisión y confirmación existentes. */
+  html[data-presentation] .detail-dialog { border-radius: 18px; border-color: var(--border); background: var(--surface); }
+  html[data-presentation] .dialog-header { background: var(--module-heading); }
+  html[data-presentation] .dialog-header h2 { font-size: 20px; }
+  html[data-presentation] .dialog-content { font-size: 14px; }
+  html[data-presentation] .file-drop {
+    padding: 26px; gap: 12px; border: 1px dashed var(--module-accent); border-radius: 14px;
+    background: linear-gradient(110deg, var(--module-heading), var(--surface));
+  }
+  html[data-presentation] .file-drop:hover { border-style: solid; }
+  html[data-presentation] input[type="file"] { max-width: 100%; font: inherit; font-size: 13px; color: var(--ink-2); }
+  html[data-presentation] input[type="file"]::file-selector-button {
+    padding: 10px 14px; margin-right: 12px; border: 1px solid var(--border-strong); border-radius: 9px;
+    background: var(--surface); color: var(--module-accent); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  html[data-presentation] #budget-file { width: 100%; padding: 20px; border: 1px dashed var(--module-accent); border-radius: 12px; background: var(--module-heading); }
+  html[data-presentation] :is(.import-destination, .detect-card, .detect-ignored) { border-radius: 12px; }
+  html[data-presentation] .detect-card { border-top: 3px solid var(--module-accent); }
+  html[data-presentation] .detect-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+  html[data-presentation] :is(.import-summary, .import-checks, .import-notes) { line-height: 1.7; }
+  html[data-presentation] .import-actions { padding-top: 18px; }
+  html[data-presentation] .import-table-scroll { border-radius: 12px; }
+  html[data-presentation] .import-table :is(input:not([type="checkbox"]), select) { border-radius: 7px; min-height: 38px; }
+  html[data-presentation] #assets-preview > .panel-header { background: var(--module-heading); padding-bottom: 20px; }
+  html[data-presentation] #personal-import-preview > .panel-title { padding: 18px; margin-top: 20px; border-radius: 12px; background: var(--module-heading); }
+  html[data-presentation] :is(#personal-import-preview, #assets-preview) .table-wrap { border: 1px solid var(--border); border-radius: 12px; }
+  html[data-presentation] :is(#personal-import-totals, #assets-import-totals) { padding: 16px; border-radius: 12px; background: var(--surface-soft); }
+  html[data-presentation] :is(#personal-import-totals, #assets-import-totals):empty { padding: 0; }
+
+  /* Particularidades visuales de los módulos, sin sustituir sus componentes. */
+  html[data-presentation] .personal-welcome { background: linear-gradient(120deg, var(--module-heading), var(--module-blue)); border: 1px solid var(--border); border-radius: var(--module-radius); color: var(--ink); }
+  html[data-presentation] .personal-welcome :is(.welcome-copy p, .welcome-copy p strong, .welcome-month, .personal-balance > span, .personal-balance > p, .personal-balance > strong > span) { color: var(--muted); }
+  html[data-presentation] .personal-welcome .welcome-chip { color: var(--module-accent); background: var(--surface); border-color: var(--border); border-radius: 8px; }
+  html[data-presentation] .welcome-copy h2 { color: var(--ink); font-weight: 700; }
+  html[data-presentation] .personal-balance > strong { color: var(--ink); font-weight: 700; }
+  html[data-presentation] .personal-welcome .welcome-decoration > span { border-color: color-mix(in srgb, var(--module-accent) 12%, transparent); }
+  html[data-presentation] .leverage-card { background: var(--module-blue); }
+  html[data-presentation] .leverage-card:nth-child(2) { background: var(--module-violet); }
+  html[data-presentation] .leverage-card:nth-child(3) { background: var(--module-green); }
+  html[data-presentation] .leverage-card h2 { font-size: 16px; }
+  html[data-presentation] .leverage-value { color: var(--ink); }
+  html[data-presentation] .total-leverage { color: var(--ink); }
+  html[data-presentation] .total-leverage :is(.leverage-code, .leverage-value span, .leverage-formula span),
+  html[data-presentation] .total-leverage > p { color: var(--muted); }
+  html[data-presentation] .total-leverage > .button { color: var(--module-accent); }
+  html[data-presentation] .total-leverage > .button:hover { background: var(--blue-soft); }
+  html[data-presentation] .total-leverage .leverage-formula { border-color: var(--border); }
+  html[data-presentation] .total-leverage .mini-icon { background: var(--surface); color: var(--module-accent); }
+  html[data-presentation] .report-preview { background: var(--surface-soft); }
+  html[data-presentation] .report-paper { border-radius: 12px; }
+  html[data-presentation] .report-type { background: var(--surface); border-radius: 11px; }
+  html[data-presentation] .report-type.active { background: var(--module-heading); border-color: var(--module-accent); }
+  html[data-presentation] .report-type strong { font-size: 13px; }
+  html[data-presentation] .report-information { background: var(--surface-soft); }
+  html[data-presentation] .statement-table { font-size: 13px; }
+  html[data-presentation] .budget-steps button { border-radius: 12px; min-height: 68px; }
+  html[data-presentation] .budget-steps button[aria-current] { background: var(--module-heading); border-color: var(--module-accent); box-shadow: inset 0 -3px var(--module-accent); }
+  html[data-presentation] .budget-flow span { background: var(--surface-soft); }
+
+  @media (max-width: 1100px) {
+    html[data-presentation] .page-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
+    html[data-presentation] .heading-actions { flex-wrap: wrap; }
+  }
+  @media (max-width: 760px) {
+    html[data-presentation] .main-content { padding-top: 18px; }
+    html[data-presentation] .page-heading { padding: 20px 18px; }
+    html[data-presentation] :is(.panel-title, .dialog-header h2) { font-size: 17px; }
+    html[data-presentation] .case-bar { padding: 16px; }
+    html[data-presentation] .case-actions { flex-wrap: wrap; }
+    html[data-presentation] .panel-header > * { min-width: 0; max-width: 100%; }
+    html[data-presentation] .heading-actions .button { white-space: normal; }
+    html[data-presentation] .file-drop { padding: 18px; }
+    html[data-presentation] .import-actions .button { white-space: normal; }
+  }
+  @media (max-width: 600px) {
+    html[data-presentation] .form-grid { grid-template-columns: minmax(0, 1fr); }
+    html[data-presentation] .stat-card { padding: 16px; }
+    html[data-presentation] .report-preview { padding-left: 12px; padding-right: 12px; }
+    html[data-presentation] .personal-welcome { padding: 24px; }
+  }
+}
