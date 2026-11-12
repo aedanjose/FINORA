@@ -70,9 +70,20 @@ async function run() {
   try{
     await send('Runtime.enable',{},sessionId);await send('Page.enable',{},sessionId);await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]},sessionId);
     await send('Page.navigate',{url:base+'/modulos/analisis-financiero/index.html'},sessionId);await until('!!window.FinoraAcademicAnalysis');await evaluate(`FinoraCasos.store.add(${JSON.stringify(company)})`);
-    await click('#tab-ratios');assert.match(await content('panel-ratios'),/Ciclo de Conversión de Efectivo/);assert.match(await content('panel-ratios'),/CCE = inventario \+ cobro − pago: pendiente/);assert.match(await content('panel-ratios'),/96,400\.00/);
+    await click('#tab-income');assert.match(await content('panel-income'),/141,400\.00/);
+    await click('#tab-ratios');assert.match(await content('panel-ratios'),/Ciclo de Conversión de Efectivo/);assert.match(await content('panel-ratios'),/CCE = inventario \+ cobro − pago: pendiente/);
+    assert.match(await content('panel-ratios'),/Dividendos totales informados:\s*C\$\s*45,000\.00/);
+    assert.match(await content('panel-ratios'),/Cambio entre balances:\s*C\$\s*96,400\.00/);
+    assert.match(await content('panel-ratios'),/Incremento reportado:\s*C\$\s*96,400\.00/);
+    const margin=await evaluate(`Array.from(document.querySelectorAll('.ratio-table tbody tr')).find(r=>r.cells[0]?.textContent==='Margen neto')?.cells[3]?.textContent`);
+    assert.equal(margin,'—');
     await fill('[name=creditSales]',1200000);await fill('[name=purchaseRate]',70);await evaluate('document.getElementById("cce-premises").requestSubmit()');
     assert.match(await content('panel-ratios'),/CCE = inventario \+ cobro − pago: 38\.96 días/);assert.match(await content('panel-ratios'),/No se puede comparar/);
+    for(const expected of ['101.39 días','42.58 días','105.01 días'])assert.ok((await content('panel-ratios')).includes(expected),expected);
+    for(const [label,expected] of [['Razón circulante','1.89 veces'],['Prueba ácida','1.22 veces'],['Razón de deuda','52.73%'],['Cobertura de intereses','12.22 veces'],['Rotación de inventario','3.60 veces']]){
+      const row=await evaluate(`Array.from(document.querySelectorAll('.ratio-table tbody tr')).find(r=>r.cells[0]?.textContent===${JSON.stringify(label)})?.textContent`);
+      assert.ok(row?.includes(expected),label+': '+row);
+    }
     const after=await active();assert.deepEqual(after.balance,company.balance);assert.deepEqual(after.income,company.income);assert.deepEqual(after.reported,company.reported);
     await send('Page.reload',{},sessionId);await until('!!document.getElementById("cce-premises")');assert.equal(await evaluate('document.querySelector("[name=creditSales]").value'),'1200000');
     for(const width of [1440,390])for(const mode of ['off','on']){await send('Emulation.setDeviceMetricsOverride',{width,height:950,deviceScaleFactor:1,mobile:false},sessionId);await evaluate(`document.documentElement.dataset.presentation=${JSON.stringify(mode)};document.querySelector('.cce-chart').scrollIntoView({block:'center'})`);await evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true);await shot('cce-'+width+'-'+mode);}

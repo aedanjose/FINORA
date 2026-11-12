@@ -42,6 +42,7 @@
     { id: 'analisis-financiero', label: 'Análisis financiero', icon: 'chart' },
     { id: 'punto-equilibrio', label: 'Punto de equilibrio y C-V-U', icon: 'trend' },
     { id: 'apalancamiento', label: 'Apalancamiento', icon: 'layers' },
+    { id: 'origen-aplicacion', label: 'Origen y aplicación', icon: 'chart' },
     { id: 'flujo-efectivo', label: 'Flujo de efectivo', icon: 'wallet' },
     { id: 'planeacion-presupuestos', label: 'Planeación y presupuestos', icon: 'calendar' },
     { id: 'proforma', label: 'Estados Proforma', icon: 'file' },
@@ -55,7 +56,7 @@
   const navItem = item => `<a class="nav-item${item.id === current.id ? ' active' : ''}" href="${moduleLink(item)}"${item.id === current.id ? ' aria-current="page"' : ''}>${icon(item.icon)}<span>${item.label}</span>${item.id === current.id ? '<span class="nav-active-dot"></span>' : ''}</a>`;
   const sidebar = document.getElementById('sidebar');
   const navGroups = [
-    ['Finanzas empresariales', modules.slice(1, 8)],
+    ['Finanzas empresariales', modules.slice(1, 9)],
     ['Finanzas personales', modules.filter(item => item.id === 'presupuesto-personal')],
     ['Control patrimonial', modules.filter(item => ['levantamiento-activos', 'inventario'].includes(item.id))]
   ];

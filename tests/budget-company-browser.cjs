@@ -129,7 +129,7 @@ async function run() {
     assert.equal((await analysis()).totals.netProfit,300);
     await step(1);assert.equal(await evaluate(`document.querySelector('[data-path="products.0.values.2026-10.units"]').value`),'10');
     // El selector compartido conserva empresas y selección en todos los consumidores.
-    for(const mod of ['dashboard','analisis-financiero','punto-equilibrio','apalancamiento','flujo-efectivo','proforma','estados-financieros']) {
+    for(const mod of ['dashboard','analisis-financiero','punto-equilibrio','apalancamiento','origen-aplicacion','flujo-efectivo','proforma','estados-financieros']) {
       await navigate(mod);assert.equal(await evaluate('document.getElementById("case-select").value'),company.id);
       await fill('#case-select',existing.id);assert.deepEqual(await active(),existing);
       await fill('#case-select',company.id);assert.deepEqual(await active(),manual);
@@ -162,7 +162,7 @@ async function run() {
     const memoryCount=await evaluate('FinoraCasos.store.list().length');await evaluate('document.getElementById("budget-company-form").dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}))');
     assert.equal(await evaluate('FinoraCasos.store.list().length'),memoryCount);await evaluate('Storage.prototype.setItem=window.originalSet');
     assert.deepEqual(errors,[]);
-    console.log('OK: creación local, validación, duplicados, cancelación, envío doble, selección, ventas/compras/gastos manuales (utilidad C$300), recarga, historial intacto, 7 selectores, Excel opcional (C$60900), fallo de almacenamiento y modal escritorio/móvil en ambos temas.');
+    console.log('OK: creación local, validación, duplicados, cancelación, envío doble, selección, ventas/compras/gastos manuales (utilidad C$300), recarga, historial intacto, 8 selectores, Excel opcional (C$60900), fallo de almacenamiento y modal escritorio/móvil en ambos temas.');
     screenshots.forEach(file=>console.log(file));
   } finally { await send('Browser.close').catch(()=>browser.kill());await new Promise(resolve=>server.close(resolve)); }
 }

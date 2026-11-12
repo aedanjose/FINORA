@@ -30,6 +30,7 @@ Sitio estático HTML/CSS/JS sin build. Módulos en `modulos/<id>/{index.html,scr
 | Pegado y clasificación | `assets/js/{table-import,paste-import}.js`, `modulos/estados-financieros/{import,start}.js` |
 | Excel y detección de hojas | `assets/js/{file-table,sheet-detect,workbook-import}.js`, `modulos/estados-financieros/file-import.js` (SheetJS en `assets/vendor/`) |
 | Presupuestos, caja y proforma | `assets/js/budget.js` (+ `budget-import.js`), `modulos/planeacion-presupuestos/script.js` |
+| Origen y aplicación de fondos | `assets/js/sources-uses.js`, `modulos/origen-aplicacion/` |
 | Flujo de efectivo / equilibrio | `assets/js/cash-flow.js`, `assets/js/break-even.js` |
 | Diseño | tokens en `assets/css/global.css`; modo Exposición (oscuro, por defecto) en `assets/css/presentation.css`; tablas en `assets/css/casos.css`. Usa tokens; textos ≥ 11 px |
 

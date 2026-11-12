@@ -79,7 +79,7 @@ async function run() {
     assert.equal(await evaluate('localStorage.getItem("finora:presentation:v1")'), null, 'El modo claro inicial no escribe preferencias');
     assert.equal(await evaluate('document.querySelectorAll(".dash-bar").length'), 0, 'No se fabrican cifras al iniciar');
     assert.deepEqual(await evaluate('Array.from(document.querySelectorAll(".nav-label")).map(e=>e.textContent)'), ['Finanzas empresariales', 'Finanzas personales', 'Control patrimonial']);
-    assert.equal(await evaluate('document.querySelectorAll(".nav-item").length'), 11);
+    assert.equal(await evaluate('document.querySelectorAll(".nav-item").length'), 12);
     for (const link of await evaluate('Array.from(document.querySelectorAll(".nav-item")).map(a=>a.href)')) assert.equal((await fetch(link)).status, 200);
     for (const width of [1440,390]) for (const mode of ['off','on']) {
       await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false},sessionId);

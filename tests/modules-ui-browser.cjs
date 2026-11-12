@@ -66,11 +66,11 @@ async function run() {
   const C = require('../assets/js/casos.js'), P = require('../assets/js/paste-import.js'), W = require('../assets/js/workbook-import.js');
   const draft = kind => P.analyze(fs.readFileSync(path.join(__dirname, 'fixtures', `prueba-2025-2026-${kind}.txt`), 'utf8'), { kind });
   const example = W.buildCase(C.blankCase('Empresa de prueba · estados 2025–2026'), draft('balance'), draft('income'));
-  const modules = ['estados-financieros','analisis-financiero','punto-equilibrio','apalancamiento','flujo-efectivo','planeacion-presupuestos','proforma','presupuesto-personal','levantamiento-activos','inventario'];
+  const modules = ['estados-financieros','analisis-financiero','punto-equilibrio','apalancamiento','origen-aplicacion','flujo-efectivo','planeacion-presupuestos','proforma','presupuesto-personal','levantamiento-activos','inventario'];
   const issues = [];
   const navigate = async mod => {
     await send('Page.navigate', { url: base + '/modulos/' + mod + '/index.html' }, sessionId);
-    await until(`document.body?.dataset.page===${JSON.stringify(mod)} && document.querySelectorAll('.nav-item').length===11 && document.readyState==='complete'`);
+    await until(`document.body?.dataset.page===${JSON.stringify(mod)} && document.querySelectorAll('.nav-item').length===12 && document.readyState==='complete'`);
   };
   const viewport = (width, mode) => send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false }, sessionId).then(() => evaluate(`document.documentElement.dataset.presentation=${JSON.stringify(mode)};scrollTo(0,0)`));
   const layout = async label => {
@@ -105,6 +105,36 @@ async function run() {
         await viewport(width, mode); await layout(mod+' '+width+' '+mode);
         if(width===1440 && mode==='off') await shot(mod);
         if(width===390 && mode==='off' && ['estados-financieros','proforma','presupuesto-personal'].includes(mod)) await shot(mod+'-movil');
+      }
+      if(mod==='origen-aplicacion') {
+        const menu=await evaluate('Array.from(document.querySelectorAll(".nav-item")).map(el=>el.textContent.trim())');
+        assert.equal(menu.indexOf('Origen y aplicación')+1,menu.indexOf('Flujo de efectivo'));
+        assert.match(await content('sources-content'),/105,000\.00/); assert.match(await content('sources-content'),/90,000\.00/);
+        assert.match(await content('sources-content'),/15,000\.00/); assert.match(await content('sources-content'),/financiamiento de proveedores/);
+        assert.equal(await evaluate('document.querySelectorAll(".sources-grid table").length'),2);
+        assert.match(await content('sources-content'),/Aumento observado del efectivo/);
+        assert.match(await content('sources-content'),/Total ajustado orígenes/);assert.match(await content('sources-content'),/Total ajustado aplicaciones/);
+        assert.match(await content('sources-content'),/Cuadrado/);assert.match(await content('sources-content'),/no son verificaciones independientes/);
+        const company=await active();
+        await evaluate('(()=>{const c=FinoraCasos.store.active();c.balance.find(a=>a.role==="cash").amounts.previous=null;FinoraCasos.store.save(c)})()');
+        assert.match(await content('sources-content'),/Información insuficiente/);assert.match(await content('sources-content'),/105,000\.00/);
+        assert.match(await content('sources-content'),/variación explicada\):\s*C\$ 15,000\.00/i);
+        await evaluate(`FinoraCasos.store.save(${JSON.stringify(company)})`);
+        await evaluate('(()=>{const c=FinoraCasos.store.active(),gross=c.balance.find(a=>/planta y equipo/.test(a.name)),contra=c.balance.find(a=>a.sign===-1);c.params.cashFlow={periodKey:FinoraCashFlow.periodKey(c),allocations:{[gross.id]:"ignore",[contra.id]:"operating"}};FinoraCasos.store.save(c)})()');
+        assert.match(await content('sources-content'),/Información insuficiente/);assert.match(await content('sources-content'),/no tiene una compensación identificada/);
+        await evaluate(`FinoraCasos.store.save(${JSON.stringify(company)})`);
+        await evaluate('(()=>{const c=FinoraCasos.store.active();c.balance.find(a=>a.role==="cash").amounts.current=75000;c.balance.find(a=>a.name==="Capital aportado").amounts.current=115000;FinoraCasos.store.save(c)})()');
+        assert.match(await content('sources-content'),/Disminución observado del efectivo|Disminución observada del efectivo/);
+        assert.match(await content('sources-content'),/115,000\.00/);
+        await evaluate(`FinoraCasos.store.save(${JSON.stringify(company)})`);
+        await evaluate('(()=>{const c=FinoraCasos.store.active();c.params.cashFlow={periodKey:FinoraCashFlow.periodKey(c),investingOverride:-42000};FinoraCasos.store.save(c)})()');
+        assert.match(await content('sources-content'),/Descuadrado/);assert.match(await content('sources-content'),/−C\$ 2,000\.00/);
+        assert.equal(await evaluate('document.querySelector(".sources-status a").getAttribute("href")'),'../flujo-efectivo/index.html');
+        await evaluate(`FinoraCasos.store.save(${JSON.stringify(company)})`);
+        await viewport(1440,'off');await click('.heading-actions a.button-primary');
+        await until('document.body?.dataset.page==="flujo-efectivo" && !!document.getElementById("cash-net")');
+        assert.match(await content('cash-net'),/15,000\.00/);
+        await navigate(mod);
       }
       if(mod==='apalancamiento') {
         for(const mode of ['off','on']) {
@@ -179,7 +209,7 @@ async function run() {
     console.log('Capturas: '+profile);
     assert.deepEqual(errors,[], 'Errores de JavaScript');
     assert.deepEqual(issues,[], 'Diseño adaptable');
-    console.log('OK: 10 módulos, 4 anchos, 2 temas, datos intactos, formularios, Excel financiero/personal/activos, revisión y cancelación, tema persistente e identidad de bienvenida.');
+    console.log('OK: 11 módulos, 4 anchos, 2 temas, datos intactos, formularios, Excel financiero/personal/activos, revisión y cancelación, tema persistente e identidad de bienvenida.');
   } finally { await send('Browser.close').catch(() => browser.kill()); await new Promise(resolve => server.close(resolve)); }
 }
 run().catch(error => { console.error(error); server.close(); process.exitCode = 1; });
